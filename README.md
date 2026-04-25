@@ -1,462 +1,188 @@
-# 🚀 Git AI Review - 通用版本
+# Maestro
 
-**多 AI + 多平台的通用代碼審查系統**
+> Orchestrate every AI PR review bot. Close the loop. Ship merged.
 
-完全開源、自託管、高度可定制的自動代碼審查解決方案。
+`maestro` is **not another code reviewer.** CodeRabbit, Ellipsis, Copilot Code Review, Codex, Gemini Code Assist, Sourcery — those are already excellent reviewers. The missing piece is what happens *after* the review: classifying findings, fixing real bugs, replying in-thread, resolving threads, requesting re-review, knowing when to stop. `maestro` is the convergence layer on top of your bots.
 
 ```
-支持 AI 提供商:          支持 Git 平台:
-✅ Claude (Anthropic)    ✅ GitHub
-✅ OpenAI (GPT)          ✅ GitLab
-✅ Google Gemini         ✅ Gitea
-✅ 本地 LLM (Ollama)      ✅ Gitee (碼雲)
-✅ 自定義 API
+[ you push code ]
+       │
+       ▼
+[ CodeRabbit reviews ]   [ Ellipsis reviews ]   [ Copilot reviews ]
+       │                        │                       │
+       └──────────┬─────────────┴───────────────────────┘
+                  ▼
+            ┌──────────┐
+            │ maestro  │  ← classify · dedup · fix · reply · resolve
+            └──────────┘
+                  │
+                  ▼
+       (loop until ≤3 rounds OR convergence OR escalate)
+                  │
+                  ▼
+            [ ready to merge ]
 ```
 
 ---
 
-## ✨ 核心特性
+## Why this exists
 
-### 🎯 多 AI 提供商支持
+CodeRabbit and Ellipsis are great at finding issues. They are not great at *finishing the conversation*. You fix five out of eight findings, push back on two, miss one real bug. Ten minutes later the bot re-reviews and finds three new ones. The loop never converges; you merge when you're tired, not when it's done.
 
-- **Claude** - Anthropic 的最新模型
-- **OpenAI** - GPT-4 系列
-- **Google Gemini** - Google 的 AI
-- **本地 LLM** - Ollama 本地部署
-- **自定義 API** - 任何第三方 LLM
+`maestro` runs a hard-capped convergence loop with deterministic stop conditions:
 
-### 🌐 多 Git 平台支持
+- **Hard cap: 3 rounds.** No exceptions.
+- **Monotone non-increasing critical-finding set.** If round N+1 has more critical findings than round N, escalate to human.
+- **Convergence detection.** Same findings reappearing across rounds (Jaccard > 0.7) → stop and escalate.
+- **Anti-spam by construction.** Runtime assertions enforce ≤1 commit per round, ≤1 reply per thread per round, ≤1 PR-body update per round. Violations crash the process — no silent drift.
 
-- **GitHub** - 雲端倉庫
-- **GitLab** - 自託管/雲端
-- **Gitea** - 輕量級自託管
-- **Gitee** - 碼雲（國內）
+---
 
-### 🏗️ 工廠模式 + 依賴注入
+## Quick start (target UX, M1+)
 
-```typescript
-// 動態創建提供商
-const ai = await AIProviderFactory.create('claude', config);
-const platform = await GitPlatformFactory.create('github', config);
+```bash
+# install
+npx @mikeah2011/maestro@latest init     # scaffold .maestro.yaml
+maestro doctor                     # verify gh/glab/tea CLIs, tokens, AI keys
 
-// 或使用快速方法
-const ai = await createAIProvider('openai', { apiKey: 'sk-...' });
-const platform = await createGitPlatform('gitlab', { token: 'glpat-...' });
+# run on an open PR
+maestro loop start --pr 42         # background; emits JSONL events
+maestro loop status                # see current state
+maestro audit --pr 42              # replay every classification decision
 ```
 
-### ⚙️ 靈活的配置系統
+Or in CI:
 
 ```yaml
-# .gitai-review.yaml
+# .github/workflows/review-loop.yml
+- uses: mikeah2011/maestro-action@v1
+  with:
+    pr: ${{ github.event.number }}
+```
+
+---
+
+## What's in this repo right now
+
+`maestro` is in **active early development.** This repo currently contains:
+
+- **Factories** — `AIProviderFactory` and `GitPlatformFactory` (Claude/OpenAI/Gemini/local; GitHub/GitLab/Gitea/Gitee).
+- **Config example** — [`.maestro.example.yaml`](./.maestro.example.yaml) shows the orchestrator config shape (bots, stop conditions, per-stage AI routing).
+- **Design document** — [`DESIGN.md`](./DESIGN.md) is the public technical summary.
+
+The convergence loop, classifier, bot registry, dedup, state machine, and CLI are tracked under [milestones](#roadmap). Reference implementation in bash exists at `internal-reference-repo/scripts/auto-pr-review-loop.sh` (internal); we are porting its semantics.
+
+---
+
+## Multi-platform, multi-AI, multi-language
+
+| Layer | Pluggable surfaces |
+|---|---|
+| **AI Provider** | Claude, OpenAI, Gemini, local (Ollama), custom HTTP endpoint |
+| **Git Platform** | GitHub, GitLab, Gitea, Gitee |
+| **Review Bots** | CodeRabbit, Ellipsis, Copilot Code Review, Codex, Gemini Code Assist, Sourcery, Greptile, Cursor BugBot — plus convention-based detection for self-hosted bots |
+| **Language Plugin** | TS/JS, Python, Go, Rust (community contributions welcome) |
+
+Per-stage AI routing keeps cost down: cheap model for commit-message generation and unknown-finding classification; strong model for PR-body drafting and final summary.
+
+---
+
+## Configuration shape
+
+See [`.maestro.example.yaml`](./.maestro.example.yaml) for the full schema. Highlights:
+
+```yaml
 ai:
-  defaultProvider: claude
-  providers:
-    claude:
-      model: claude-opus-4-20250805
-    openai:
-      model: gpt-4-turbo-preview
+  routing:
+    commitMessage:    claude-haiku-4-5    # cheap
+    classification:   claude-sonnet-4-6   # strong
+    finalSummary:     claude-opus-4-7     # strongest
+    fallback:         claude-haiku-4-5
 
 platform:
   type: github
+  auth: { tokenEnv: GITHUB_TOKEN }
+
+bots:
+  registry:
+    - login: coderabbitai            # treatAs: blocking
+    - login: ellipsis-dev[bot]
+    - login: copilot-pull-request-reviewer
+    - login: codex-connector
+
+stopConditions:
+  maxRounds: 3
+  jaccardCeiling: 0.7
+  tasteDetection: { enabled: true, reviewerModel: claude-sonnet-4-6 }
+  ciFail: exit
+
+plugins:
+  languages:
+    typescript: { lint: "pnpm eslint", typecheck: "pnpm tsc --noEmit", test: "pnpm vitest run" }
 ```
+
+Config layering follows git's mental model: CLI flags → env vars → repo `.maestro.yaml` → user `~/.maestro/config.yaml` → defaults.
 
 ---
 
-## 🚀 快速開始
+## Comparison
 
-### 1. 安裝
+|                                  | maestro | CodeRabbit | Ellipsis | PR-Agent | reviewdog |
+|---|---|---|---|---|---|
+| Reviews code itself              | No¹     | Yes        | Yes      | Yes      | No (linters) |
+| Orchestrates *other* bots        | **Yes** | No         | No       | No       | No |
+| Multi-round convergence loop     | **Yes** | Partial    | Partial  | No       | No |
+| Hard stop conditions             | **Yes** | No         | No       | No       | No |
+| Anti-spam runtime invariants     | **Yes** | No         | No       | No       | No |
+| Tool-agnostic (CLI/Action/MCP)   | **Yes** | App only   | App only | Action   | Multi |
+| Self-hostable, OSS               | **Yes** | OSS subset | No       | Yes      | Yes |
 
-```bash
-npm install git-ai-review
-# 或
-yarn add git-ai-review
-```
-
-### 2. 配置
-
-```bash
-# 複製範本配置
-cp .gitai-review.example.yaml .gitai-review.yaml
-
-# 編輯配置文件
-nano .gitai-review.yaml
-```
-
-### 3. 設置環境變數
-
-```bash
-# 設置 AI 提供商
-export ANTHROPIC_API_KEY=sk-ant-...
-# 或
-export OPENAI_API_KEY=sk-...
-
-# 設置 Git 平台
-export GITHUB_TOKEN=ghp_...
-export GIT_PLATFORM=github
-```
-
-### 4. 使用
-
-```typescript
-import { AIProviderFactory } from 'git-ai-review/ai';
-import { GitPlatformFactory } from 'git-ai-review/platforms';
-import { configManager } from 'git-ai-review/config';
-
-// 加載配置
-await configManager.load();
-
-// 創建 AI 提供商
-const ai = await AIProviderFactory.create(
-  'claude',
-  configManager.get('ai').providers.claude
-);
-
-// 創建 Git 平台
-const platform = await GitPlatformFactory.create(
-  'github',
-  configManager.get('platform').config
-);
-
-// 進行代碼審查
-const prDiff = await platform.getPRDiff(123);
-const review = await ai.reviewCode(prDiff.diff, prDiff.files, false);
-
-// 發布評論
-await platform.addPRComment(123, review.summary);
-```
+¹ `maestro` does run local pre-push self-review (calls your AI of choice), but its core value is orchestrating external review bots.
 
 ---
 
-## 📊 架構設計
+## Roadmap
 
-### 提供商工廠模式
-
-```
-AIProviderFactory
-├── create(type, config)
-├── register(type, ProviderClass)
-├── listProviders()
-└── clearCache()
-
-GitPlatformFactory
-├── create(type, config)
-├── detectPlatformType(url)
-├── listPlatforms()
-└── clearCache()
-```
-
-### 提供商實現
-
-**AI 提供商基類**:
-```typescript
-abstract class AIProvider {
-  abstract validateConfig(): void;
-  abstract initialize(): Promise<void>;
-  abstract reviewCode(diff, files, strictMode): Promise<ReviewResult>;
-  abstract testConnection(): Promise<boolean>;
-  abstract getName(): string;
-  abstract listModels(): Promise<string[]>;
-}
-```
-
-**Git 平台基類**:
-```typescript
-abstract class GitPlatform {
-  abstract validateConfig(): void;
-  abstract initialize(): Promise<void>;
-  abstract getPRInfo(prId): Promise<PRInfo>;
-  abstract getPRDiff(prId): Promise<GitDiff>;
-  abstract addPRComment(prId, comment): Promise<void>;
-  abstract mergePR(prId): Promise<void>;
-  abstract testConnection(): Promise<boolean>;
-}
-```
+| Milestone | Status | What lands |
+|---|---|---|
+| M0 — Naming + reframe | done | Repo renamed, README + config rewritten, DESIGN.md published |
+| M1 — CLI + config + Platform interface | next | Bun-compiled `maestro` binary, Zod schema, `init` + `doctor` |
+| M2 — Loop port (GitHub) | | StateMachine, RoundBudget, CommitThrottle, EventEmitter |
+| M3 — Convergence + classifier | | ConvergenceMonitor, fenced Classifier, 3-tier Dedup, SecretScanner |
+| M4 — Bot registry | | CodeRabbit + Ellipsis + Copilot + Codex parsers |
+| M5 — Other 3 platforms | | GitLab + Gitea + Gitee implementations |
+| M6 — Distribution | | GitHub Releases binaries, GitHub Action, GitLab CI Component, Claude Code skill |
+| M7 — Phase 2 | | Homebrew tap, Docker image, MCP server, more language plugins |
 
 ---
 
-## 🔧 配置詳解
+## Adoption phases
 
-### 切換 AI 提供商
+The project is being dogfooded internally before public OSS launch. Phases:
 
-```bash
-# 使用 Claude（默認）
-export AI_PROVIDER=claude
-
-# 使用 OpenAI
-export AI_PROVIDER=openai
-export OPENAI_API_KEY=sk-...
-
-# 使用本地 LLM
-export AI_PROVIDER=local
-export OLLAMA_BASE_URL=http://localhost:11434
-export LOCAL_LLM_MODEL=mistral
-
-# 使用 Google Gemini
-export AI_PROVIDER=google
-export GOOGLE_API_KEY=...
-```
-
-### 切換 Git 平台
-
-```bash
-# GitHub（默認）
-export GIT_PLATFORM=github
-export GITHUB_TOKEN=ghp_...
-
-# GitLab
-export GIT_PLATFORM=gitlab
-export GITLAB_TOKEN=glpat-...
-
-# Gitea 自託管
-export GIT_PLATFORM=gitea
-export GITEA_TOKEN=...
-export GITEA_BASE_URL=http://your-gitea-server.com
-
-# Gitee
-export GIT_PLATFORM=gitee
-export GITEE_TOKEN=...
-```
+- **P0 self-dogfood** (in progress) — single-author, single-repo, prove the loop converges.
+- **P1 team pilot** — 3–5 internal repos, 4 weeks, NPS + cost-per-PR metrics.
+- **P2 org-wide** — 20+ repos, runbook, on-call, p50 loop completion <30 min.
+- **P3 public OSS** — zero internal deps, external contributor onboarding works, public launch.
 
 ---
 
-## 📈 高級用法
+## License
 
-### 使用多個 AI 提供商
+Pending — will be MIT or Apache-2.0 before public release. internal use is granted under the existing employment relationship.
 
-```typescript
-const claudeReview = await aiProviderFactory.create('claude', config);
-const openaiReview = await aiProviderFactory.create('openai', config);
+## Contributing
 
-// 交叉驗證
-const results = await Promise.all([
-  claudeReview.reviewCode(diff, files, false),
-  openaiReview.reviewCode(diff, files, false),
-]);
-```
-
-### 自定義提供商
-
-```typescript
-// 創建自定義 AI 提供商
-class MyCustomProvider extends AIProvider {
-  async initialize(): Promise<void> {
-    // 初始化代碼
-  }
-
-  async reviewCode(diff, files, strictMode): Promise<ReviewResult> {
-    // 自定義審查邏輯
-  }
-
-  // ... 實現其他抽象方法
-}
-
-// 註冊自定義提供商
-AIProviderFactory.register('mycustom', MyCustomProvider);
-
-// 使用
-const ai = await AIProviderFactory.create('mycustom', config);
-```
-
-### 審查規則
-
-```yaml
-review:
-  rules:
-    - name: 'Security Check'
-      enabled: true
-      providers: [claude, openai]  # 多個提供商
-      strictMode: true
-
-    - name: 'Performance'
-      enabled: true
-      provider: local  # 單個提供商
-      model: mistral
-```
+Public contributions are not yet open. The project will accept external contributions starting at P3 (public OSS phase). Until then, internal contributors can open PRs directly.
 
 ---
 
-## 🏆 最佳實踐
+## Acknowledgements
 
-### 1. 使用配置文件
+`maestro` borrows ideas from:
+- [PR-Agent (Qodo)](https://github.com/qodo-ai/pr-agent) — JSON-configurable LLM prompts, PR compression for large diffs.
+- [Gito](https://github.com/Nayjest/Gito) — confidence-first finding filtering.
+- [reviewdog](https://github.com/reviewdog/reviewdog) — universal lint-output → PR-comment bridge (we depend on it as a static-analysis source).
+- [Danger.js](https://github.com/danger/danger-js) — idempotent comment update / cleanup pattern for the PR-body rollup section.
 
-```bash
-cp .gitai-review.example.yaml .gitai-review.yaml
-# 編輯配置
-npm run review
-```
-
-### 2. 環境變數優先級
-
-```
-優先級：環境變數 > 命令行參數 > 配置文件 > 默認值
-```
-
-### 3. 性能優化
-
-```typescript
-// 啟用提供商緩存
-const config = configManager.get('advanced');
-config.cacheProviders = true;
-
-// 使用本地 LLM 提高速度
-const ai = await createAIProvider('local', {
-  baseUrl: 'http://localhost:11434',
-  model: 'mistral',  // 快速的小模型
-});
-```
-
-### 4. 成本控制
-
-```yaml
-ai:
-  defaultProvider: local  # 免費的本地 LLM
-  providers:
-    local:
-      model: mistral  # 小型快速模型
-```
-
----
-
-## 📚 文檔
-
-- [快速開始](./docs/QUICK_START.md)
-- [配置指南](./docs/CONFIG.md)
-- [API 參考](./docs/API.md)
-- [部署指南](./docs/DEPLOYMENT.md)
-- [示例代碼](./examples/)
-
----
-
-## 🎯 使用場景
-
-### 場景 1：開發者本地使用
-
-```bash
-# 本地快速審查
-claude-git-review check
-
-# 使用本地 LLM（免費）
-export AI_PROVIDER=local
-claude-git-review check
-```
-
-### 場景 2：團隊 CI/CD 集成
-
-```yaml
-# GitHub Actions 中使用
-- name: Code Review
-  run: |
-    export AI_PROVIDER=openai
-    npm run review
-```
-
-### 場景 3：企業級部署
-
-```bash
-# 使用多個 AI 進行交叉驗證
-# 使用私有 Git 服務（Gitea）
-# 通過配置文件統一管理
-```
-
----
-
-## 🔒 安全特性
-
-✅ **API Key 管理**
-- 支持環境變數
-- 支持配置文件
-- 支持 Secret Manager
-
-✅ **請求簽名驗證**
-- WebHook 簽名驗證
-- 防止未授權訪問
-
-✅ **數據隱私**
-- 支持本地 LLM（無數據外傳）
-- 支持自託管平台
-
----
-
-## 📊 成本對比
-
-| 方式 | 成本/月 | 速度 | 隱私 |
-|------|--------|------|------|
-| Claude + GitHub | $5-20 | 快 | ⭐⭐⭐ |
-| OpenAI + GitHub | $5-15 | 快 | ⭐⭐ |
-| 本地 LLM + GitHub | $0 | 慢 | ⭐⭐⭐⭐⭐ |
-| Claude + Gitea 自託管 | $5-20 | 快 | ⭐⭐⭐⭐ |
-
----
-
-## 🤝 貢獻
-
-歡迎提交 PR 或 Issue！
-
-```bash
-# 開發設置
-npm install
-npm run dev
-
-# 測試
-npm run test
-
-# 構建
-npm run build
-```
-
----
-
-## 📄 許可證
-
-MIT - 自由使用和修改
-
----
-
-## 💡 常見問題
-
-**Q: 如何使用本地 LLM？**
-
-```bash
-# 安裝 Ollama：https://ollama.ai
-ollama pull mistral
-
-# 配置
-export AI_PROVIDER=local
-export OLLAMA_BASE_URL=http://localhost:11434
-```
-
-**Q: 如何支持自定義 API？**
-
-```typescript
-class CustomProvider extends AIProvider {
-  // 實現接口
-}
-
-AIProviderFactory.register('custom', CustomProvider);
-```
-
-**Q: 如何在企業 GitHub/GitLab 上使用？**
-
-```bash
-# GitHub Enterprise
-export GITHUB_TOKEN=ghp_...
-export GITHUB_API_URL=https://your-github.company.com/api/v3
-
-# GitLab self-hosted
-export GITLAB_TOKEN=glpat-...
-export GITLAB_BASE_URL=https://your-gitlab.company.com/api/v4
-```
-
----
-
-**開始使用** 🚀
-
-```bash
-git clone https://github.com/mikeah2011/git-ai-review-universal.git
-cd git-ai-review-universal
-npm install
-cp .gitai-review.example.yaml .gitai-review.yaml
-npm run review
-```
-
-**祝你使用愉快！**
+The novel contribution is the multi-bot orchestration layer with mathematical convergence guarantees — not present in any of the above.

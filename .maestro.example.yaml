@@ -1,0 +1,239 @@
+# Maestro — example configuration
+# Copy to `.maestro.yaml` (repo-level) or `~/.maestro/config.yaml` (user-level)
+# Precedence (high → low): CLI flags → env vars → repo config → user config → defaults
+
+# ─── AI providers ──────────────────────────────────────────────────────────
+ai:
+  # Provider definitions — declare any number; routing chooses which to use per stage.
+  providers:
+    claude:
+      type: claude
+      apiKey: ${ANTHROPIC_API_KEY}
+      models:
+        cheap:    claude-haiku-4-5-20251001
+        strong:   claude-sonnet-4-6
+        flagship: claude-opus-4-7
+      timeout: 30000
+      retries: 3
+
+    openai:
+      type: openai
+      apiKey: ${OPENAI_API_KEY}
+      models:
+        cheap:    gpt-4o-mini
+        strong:   gpt-4o
+        flagship: o1-preview
+
+    gemini:
+      type: google
+      apiKey: ${GOOGLE_API_KEY}
+      models:
+        cheap:    gemini-2.0-flash
+        strong:   gemini-1.5-pro
+
+    local:
+      type: local
+      baseUrl: ${OLLAMA_BASE_URL:-http://localhost:11434}
+      models:
+        cheap:  mistral
+        strong: llama3.1:70b
+
+  # Per-stage routing: which provider/model handles each phase of the loop.
+  # Cheap → high-volume / low-stakes; strong → judgment calls; flagship → final outputs.
+  routing:
+    commitMessage:     { provider: claude, tier: cheap }    # generated each round
+    prBodyDraft:       { provider: claude, tier: strong }   # once per PR
+    classifyUnknown:   { provider: claude, tier: cheap }    # fenced classifier fallback
+    semanticDedup:     { provider: claude, tier: cheap }    # tier-3 dedup only
+    tasteDetection:    { provider: claude, tier: strong }   # detects "review is now bikeshedding"
+    finalSummary:      { provider: claude, tier: flagship } # PR body rollup at end of loop
+    fallback:          { provider: claude, tier: cheap }
+
+# ─── Git platform ──────────────────────────────────────────────────────────
+platform:
+  type: github                              # github | gitlab | gitea | gitee
+  auth:
+    tokenEnv: GITHUB_TOKEN
+  # baseUrl: https://github.example.com/api/v3   # GitHub Enterprise / self-hosted
+  # owner / repo are auto-detected from `git remote get-url origin` if omitted.
+
+# Examples for other platforms (uncomment one):
+#
+# platform:
+#   type: gitlab
+#   auth: { tokenEnv: GITLAB_TOKEN }
+#   baseUrl: https://gitlab.com/api/v4
+#
+# platform:
+#   type: gitea
+#   auth: { tokenEnv: GITEA_TOKEN }
+#   baseUrl: https://gitea.example.com/api/v1
+#
+# platform:
+#   type: gitee
+#   auth: { tokenEnv: GITEE_TOKEN }
+
+# ─── Bots to orchestrate ───────────────────────────────────────────────────
+# `maestro` consumes review comments from these bots, classifies them, replies in-thread,
+# and resolves resolved threads. Curated entries ship with built-in parsers; convention
+# fallback handles unknown bots.
+bots:
+  registry:
+    - login: coderabbitai
+      treatAs: blocking          # blocking | advisory
+      severityMap: { red: critical, orange: high, blue: medium, green: low }
+
+    - login: ellipsis-dev[bot]
+      treatAs: blocking
+
+    - login: copilot-pull-request-reviewer
+      treatAs: blocking
+
+    - login: codex-connector
+      treatAs: blocking
+
+    - login: gemini-code-assist[bot]
+      treatAs: advisory
+
+    - login: sourcery-ai[bot]
+      treatAs: advisory
+
+    - login: greptile-apps[bot]
+      treatAs: advisory
+
+  # Convention-based fallback for bots not in the registry. Disable if you want
+  # explicit-only behavior.
+  detectByConvention:
+    enabled: true
+    rules:
+      - loginContains: ['bot', 'review', 'codex', 'copilot']
+      - appSlugContains: ['review', 'lint']
+
+# ─── Stop conditions (the convergence guarantees) ──────────────────────────
+stopConditions:
+  maxRounds: 3                  # hard cap. Cannot be raised above 5.
+  jaccardCeiling: 0.7           # if same critical findings reappear (Jaccard > this), stop + escalate.
+  noNewCategoryAfterRound: 2    # round 3 cannot introduce a new finding category.
+  duplicateFindingPolicy: pushback   # pushback | escalate | accept (first time)
+  ciFail: exit                  # exit | retry-with-fix
+  idleTimeoutPolls: 20          # how many polls before BotTimeout (each poll ~30s)
+  quietPeriodSec: 90            # debounce window when multiple bots are posting
+  costBudgetUSD: 5.00           # hard cost cap per loop run
+
+# ─── Anti-spam invariants (DO NOT relax) ───────────────────────────────────
+# These are runtime assertions enforced by RoundBudget. Violation = process crash.
+# Listed here for documentation / auditability — they are not user-configurable.
+# - commits_per_round <= 1
+# - replies_per_thread_per_round <= 1
+# - pr_body_updates_per_round <= 1
+# - classify_calls_per_finding <= 1
+# - reviewer_requests_per_round <= 1
+
+# ─── Local pre-flight (before push) ────────────────────────────────────────
+preflight:
+  enabled: true
+  steps:
+    - selfReview                # AI self-review of `git diff` against base
+    - lint
+    - typecheck
+    - test
+  blockOnSeverity: critical     # critical | high | medium
+
+# ─── Language plugins ──────────────────────────────────────────────────────
+plugins:
+  languages:
+    typescript:
+      lint:      "pnpm eslint --fix \"$FILE_PATH\""
+      typecheck: "pnpm tsc --noEmit"
+      test:      "pnpm vitest run"
+      format:    "pnpm prettier --write \"$FILE_PATH\""
+
+    python:
+      lint:      "ruff check --fix"
+      typecheck: "mypy ."
+      test:      "pytest"
+      format:    "ruff format"
+
+    go:
+      lint:      "golangci-lint run"
+      typecheck: "go vet ./..."
+      test:      "go test ./..."
+      format:    "gofmt -w ."
+
+    rust:
+      lint:      "cargo clippy --fix --allow-dirty"
+      typecheck: "cargo check"
+      test:      "cargo test"
+      format:    "cargo fmt"
+
+# ─── PR body template (Handlebars) ─────────────────────────────────────────
+# Maestro updates the section between the markers idempotently — never appends.
+prBody:
+  marker:
+    start: "<!-- maestro:start -->"
+    end:   "<!-- maestro:end -->"
+  template: |
+    ## Summary
+    {{summary}}
+
+    ## Test plan
+    {{#each testPlan}}
+    - [ ] {{this}}
+    {{/each}}
+
+    {{#if reviewResponse}}
+    ## Review Response
+    | Round | Bot | Findings | Fixed | Pushed back | Status |
+    |---|---|---|---|---|---|
+    {{#each reviewResponse}}
+    | {{round}} | {{bot}} | {{findings}} | {{fixed}} | {{pushedBack}} | {{status}} |
+    {{/each}}
+    {{/if}}
+
+# ─── Security ──────────────────────────────────────────────────────────────
+security:
+  scanOutgoing: true            # SecretScanner runs before every reply / PR-body update
+  redactPatterns:
+    - "(?i)api[_-]?key"
+    - "(?i)secret"
+    - "(?i)password"
+    - "(?i)token"
+    - "ghp_[A-Za-z0-9]{20,}"
+    - "sk-[A-Za-z0-9]{20,}"
+
+# ─── Audit ─────────────────────────────────────────────────────────────────
+audit:
+  enabled: true
+  dir: .maestro/audit            # one JSONL per round per PR
+  shadowLogClassifications: true # log every classify decision with full context
+
+# ─── Logging ───────────────────────────────────────────────────────────────
+logging:
+  level: info                    # debug | info | warn | error
+  format: jsonl                  # text | jsonl (jsonl is what skill/MCP read)
+  eventStream: .maestro/events.jsonl
+
+# ─── Advanced ──────────────────────────────────────────────────────────────
+advanced:
+  cacheProviders: true
+  retryStrategy:
+    maxRetries: 3
+    backoffMultiplier: 2
+  rateLimit:
+    honorRemainingHeader: true   # respect X-RateLimit-Remaining
+    minInterRequestMs: 100
+
+---
+# ─── Environment variables (override config file) ─────────────────────────
+# AI:
+#   ANTHROPIC_API_KEY, OPENAI_API_KEY, GOOGLE_API_KEY
+#   OLLAMA_BASE_URL
+#
+# Platform:
+#   GITHUB_TOKEN, GITLAB_TOKEN, GITEA_TOKEN, GITEE_TOKEN
+#
+# Maestro behavior:
+#   MAESTRO_MAX_ROUNDS=3
+#   MAESTRO_COST_BUDGET_USD=5
+#   MAESTRO_LOG_LEVEL=info
+#   MAESTRO_AUDIT_DIR=.maestro/audit
