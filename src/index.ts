@@ -110,3 +110,23 @@ export type {
   SecretScanResult,
 } from './core/security/SecretScanner';
 export { SecretScanner } from './core/security/SecretScanner';
+
+// GitHub platform (M4)
+export type { GraphQLClient, GitHubClients } from './platforms/github/GitHubPlatform';
+export { GitHubPlatform } from './platforms/github/GitHubPlatform';
+export type {
+  GHPullRequest,
+  GHDiffFile,
+  GHReview,
+  GHGraphQLThread,
+  GHCheckRun,
+  GHRateLimit,
+} from './platforms/github/mappers';
+export {
+  mapPullRequest,
+  mapDiffFiles,
+  mapReview,
+  mapGraphQLThread,
+  mapCheckRuns,
+  mapRateLimit,
+} from './platforms/github/mappers';
