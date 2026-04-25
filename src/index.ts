@@ -49,3 +49,29 @@ export type {
   PullRequestDiff,
   PullRequestDiffFile,
 } from './core/types/PullRequest';
+
+// Loop primitives (M2 — Loop port)
+export type {
+  MaestroEvent,
+  EventSink,
+  EventHandler,
+  EventEmitterOptions,
+} from './core/events/EventEmitter';
+export {
+  EventEmitter,
+  toLine,
+  streamSink,
+  stdoutSink,
+} from './core/events/EventEmitter';
+
+export type {
+  RoundBudgetInvariant,
+  RoundBudgetSnapshot,
+} from './core/round/RoundBudget';
+export { RoundBudget, RoundBudgetViolation } from './core/round/RoundBudget';
+
+export type { PendingFix, RoundCommit } from './core/round/CommitThrottle';
+export { CommitThrottle, CommitThrottleError } from './core/round/CommitThrottle';
+
+export type { LoopState, StateMachineOptions } from './core/state/StateMachine';
+export { StateMachine, StateTransitionError } from './core/state/StateMachine';
