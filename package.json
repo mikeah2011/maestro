@@ -1,0 +1,89 @@
+{
+  "name": "@mikeah2011/maestro",
+  "version": "0.0.1",
+  "description": "Orchestrate every AI PR review bot. Close the loop. Ship merged.",
+  "keywords": [
+    "pr-review",
+    "code-review",
+    "automation",
+    "ai",
+    "github",
+    "gitlab",
+    "gitea",
+    "gitee",
+    "coderabbit",
+    "ellipsis",
+    "copilot",
+    "convergence",
+    "orchestration"
+  ],
+  "homepage": "https://github.com/mikeah2011/maestro",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mikeah2011/maestro.git"
+  },
+  "bugs": "https://github.com/mikeah2011/maestro/issues",
+  "license": "UNLICENSED",
+  "type": "module",
+  "bin": {
+    "maestro": "./dist/cli.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./cli": {
+      "types": "./dist/cli.d.ts",
+      "import": "./dist/cli.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "DESIGN.md",
+    "LICENSE",
+    ".maestro.example.yaml"
+  ],
+  "engines": {
+    "node": ">=20",
+    "bun": ">=1.1"
+  },
+  "scripts": {
+    "build": "bun build src/cli/index.ts --outdir dist --target bun --minify",
+    "build:bin": "bun build src/cli/index.ts --compile --outfile dist/maestro",
+    "build:cross": "scripts/build-cross-platform.sh",
+    "dev": "bun run --watch src/cli/index.ts",
+    "start": "bun run src/cli/index.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc --noEmit",
+    "verify": "bun run typecheck && bun run test",
+    "prepublishOnly": "bun run build"
+  },
+  "dependencies": {
+    "@clack/prompts": "^0.7.0",
+    "@octokit/rest": "^21.0.2",
+    "@octokit/graphql": "^8.1.1",
+    "axios": "^1.7.7",
+    "chalk": "^5.3.0",
+    "commander": "^12.1.0",
+    "dotenv": "^16.4.5",
+    "js-yaml": "^4.1.0",
+    "p-retry": "^6.2.0",
+    "simple-git": "^3.27.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^22.7.4",
+    "@vitest/coverage-v8": "^2.1.2",
+    "bun-types": "^1.1.30",
+    "fast-check": "^3.22.0",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.2"
+  }
+}
