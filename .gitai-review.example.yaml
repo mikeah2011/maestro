@@ -1,0 +1,219 @@
+# Git AI Review - 完整配置文件範本
+# 支持多個 AI 提供商和 Git 平台
+# 複製並修改此文件為 .gitai-review.yaml
+
+# AI 配置
+ai:
+  # 默認 AI 提供商
+  defaultProvider: claude  # claude | openai | google | local | custom
+
+  # 各個提供商的配置
+  providers:
+    # Claude (Anthropic)
+    claude:
+      type: claude
+      apiKey: ${ANTHROPIC_API_KEY}  # 或設置 ANTHROPIC_API_KEY 環境變數
+      model: claude-opus-4-20250805  # claude-opus-4-20250805 | claude-sonnet-4-20250514 | claude-haiku-3-5-20241022
+      maxTokens: 2000
+      temperature: 0.7
+      timeout: 30000
+      retries: 3
+
+    # OpenAI
+    openai:
+      type: openai
+      apiKey: ${OPENAI_API_KEY}  # 或設置 OPENAI_API_KEY 環境變數
+      model: gpt-4-turbo-preview  # gpt-4-turbo-preview | gpt-4 | gpt-3.5-turbo
+      maxTokens: 2000
+      temperature: 0.7
+      timeout: 30000
+      retries: 3
+
+    # Google Gemini
+    google:
+      type: google
+      apiKey: ${GOOGLE_API_KEY}  # 或設置 GOOGLE_API_KEY 環境變數
+      model: gemini-2.0-flash  # gemini-2.0-flash | gemini-1.5-pro | gemini-1.5-flash
+      maxTokens: 2000
+      temperature: 0.7
+      timeout: 30000
+      retries: 3
+
+    # 本地 LLM (Ollama)
+    local:
+      type: local
+      baseUrl: http://localhost:11434  # 或設置 OLLAMA_BASE_URL 環境變數
+      model: mistral  # mistral | neural-chat | llama2
+      maxTokens: 2000
+      temperature: 0.7
+      timeout: 60000
+
+    # 自定義 API
+    custom:
+      type: custom
+      endpointUrl: https://your-api.com/v1/review
+      apiKey: ${CUSTOM_API_KEY}
+      requestFormat: openai  # openai | anthropic | generic
+      model: your-model
+      maxTokens: 2000
+      temperature: 0.7
+      timeout: 30000
+
+# Git 平台配置
+platform:
+  # 平台類型
+  type: github  # github | gitlab | gitea | gitee
+
+  # GitHub 配置
+  config:
+    type: github
+    token: ${GITHUB_TOKEN}  # 或設置 GITHUB_TOKEN 環境變數
+    owner: mikeah2011  # GitHub 用戶名或組織名
+    repo: your-repo  # 倉庫名
+    # baseUrl: https://api.github.com  # GitHub Enterprise 使用不同的 URL
+
+    # GitLab 配置 (替換上面的 GitHub)
+    # type: gitlab
+    # token: ${GITLAB_TOKEN}
+    # owner: username
+    # repo: project-name
+    # baseUrl: https://gitlab.com/api/v4  # GitLab 自託管使用不同的 URL
+
+    # Gitea 配置 (自託管 Git)
+    # type: gitea
+    # token: ${GITEA_TOKEN}
+    # owner: username
+    # repo: project-name
+    # baseUrl: http://your-gitea-server.com/api/v1
+
+    # Gitee 配置 (碼雲)
+    # type: gitee
+    # token: ${GITEE_TOKEN}
+    # owner: username
+    # repo: project-name
+
+# 審查規則
+review:
+  # 審查規則列表
+  rules:
+    # 安全檢查 (使用多個提供商)
+    - name: Security Check
+      enabled: true
+      providers: [claude, openai]  # 使用多個提供商進行交叉驗證
+      strictMode: true  # 嚴格模式：檢查所有方面
+
+    # 代碼質量檢查
+    - name: Code Quality
+      enabled: true
+      provider: claude  # 使用單個提供商
+      strictMode: false
+
+    # 性能檢查 (使用本地 LLM)
+    - name: Performance
+      enabled: true
+      provider: local
+      model: mistral
+      strictMode: true
+
+  # 全局審查配置
+  strictMode: false  # 全局嚴格模式
+  autoFix: false  # 自動修復常見問題
+  autoApprove: false  # 自動批准通過的 PR
+
+# 日誌配置
+logging:
+  level: info  # debug | info | warn | error
+  format: text  # text | json
+
+# 高級配置
+advanced:
+  # 緩存 AI 提供商實例
+  cacheProviders: true
+
+  # 定期測試連接
+  testConnectionInterval: 3600  # 秒
+
+  # 請求重試策略
+  retryStrategy:
+    maxRetries: 3
+    backoffMultiplier: 2  # 指數退避
+
+  # 性能監控
+  monitoring:
+    enabled: true
+    logResponseTime: true
+    logTokenUsage: true
+
+# 特定平台的高級配置
+platformAdvanced:
+  # GitHub 特定配置
+  github:
+    # 自動標籤 PR
+    autoLabel: true
+    labels:
+      passed: 'ai-review/approved'
+      failed: 'ai-review/needs-changes'
+
+  # GitLab 特定配置
+  gitlab:
+    # 自動設置 MR 狀態
+    autoStatus: true
+
+  # Gitea 特定配置
+  gitea:
+    # 自動創建 issue 用於失敗的審查
+    createIssueOnFailure: false
+
+# 通知配置 (可選)
+notifications:
+  # Slack 通知
+  slack:
+    enabled: false
+    webhookUrl: ${SLACK_WEBHOOK_URL}
+    channels:
+      - '#dev'
+      - '#reviews'
+
+  # 郵件通知
+  email:
+    enabled: false
+    smtp:
+      host: smtp.gmail.com
+      port: 587
+      user: ${SMTP_USER}
+      password: ${SMTP_PASSWORD}
+
+---
+# 環境變數使用說明：
+# 
+# 設置環境變數優先級最高，將覆蓋配置文件：
+# 
+# AI 相關：
+#   - ANTHROPIC_API_KEY=sk-ant-...
+#   - OPENAI_API_KEY=sk-...
+#   - GOOGLE_API_KEY=...
+#   - CUSTOM_API_KEY=...
+#   - OLLAMA_BASE_URL=http://localhost:11434
+#   - LOCAL_LLM_MODEL=mistral
+#
+# Git 平台相關：
+#   - GIT_PLATFORM=github        # github | gitlab | gitea | gitee
+#   - GITHUB_TOKEN=ghp_...
+#   - GITLAB_TOKEN=glpat-...
+#   - GITEA_TOKEN=...
+#   - GITEE_TOKEN=...
+#   - GITEA_BASE_URL=http://your-gitea-server.com
+#
+# 日誌相關：
+#   - LOG_LEVEL=info
+#
+# 其他：
+#   - STRICT_MODE=true
+#   - AUTO_FIX=true
+#   - AUTO_APPROVE=true
+#
+# 優先級順序：
+# 1. 環境變數 (最高)
+# 2. 命令行參數
+# 3. 配置文件
+# 4. 默認值 (最低)
