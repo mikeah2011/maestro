@@ -1,122 +1,114 @@
 /**
- * AI 提供商基類接口
- * 所有 AI 提供商必須實現此接口
+ * AI provider abstraction.
+ *
+ * The orchestrator uses AI providers as a generic completion API. There is no
+ * "review" method here — review logic lives in the orchestrator's prompts,
+ * and providers are dumb pipes for prompt → completion.
+ *
+ * Per-stage routing (configured in `.maestro.yaml`) chooses which provider
+ * + tier handles each phase: cheap models for high-volume ops, strong models
+ * for judgment ops, flagship for final outputs. The provider does not pick
+ * its own model; the caller passes a model + tier.
  */
 
-export interface ReviewResult {
-  passed: boolean;
-  summary: string;
-  issues: string[];
-  suggestions: string[];
-  severity: 'critical' | 'warning' | 'info';
-  estimatedFixTime: number; // 分鐘
-  metadata?: Record<string, any>;
-}
+export type ModelTier = 'cheap' | 'strong' | 'flagship';
+
+export type AIProviderType = 'claude' | 'openai' | 'google' | 'local' | 'custom';
 
 export interface AIProviderConfig {
+  /** Resolved API key (after env-var expansion). */
   apiKey?: string;
+  /** API base URL (set for self-hosted Ollama, GCP regions, etc.). */
   baseUrl?: string;
-  model?: string;
-  maxTokens?: number;
-  temperature?: number;
+  /** Map of tier → model id for this provider. */
+  models?: Partial<Record<ModelTier, string>>;
+  /** Default tier when caller does not specify one. */
+  defaultTier?: ModelTier;
+  /** HTTP timeout in ms per request. */
   timeout?: number;
+  /** Number of automatic retries on transient errors. */
   retries?: number;
-  [key: string]: any; // 其他特定提供商的配置
+  /** Provider-specific extras. */
+  [key: string]: unknown;
+}
+
+export type ResponseFormat =
+  | { type: 'text' }
+  | { type: 'json_object' }
+  | { type: 'json_schema'; schema: Record<string, unknown> };
+
+export interface CompletionOptions {
+  /** Override the model for this call (otherwise resolved from tier). */
+  model?: string;
+  /** Tier to resolve to a model when `model` is not set. */
+  tier?: ModelTier;
+  /** System / instruction prompt prepended to the user prompt. */
+  systemPrompt?: string;
+  /** Token budget for the output. */
+  maxTokens?: number;
+  /** Temperature; default 0 for deterministic orchestrator decisions. */
+  temperature?: number;
+  /** Desired output shape. */
+  responseFormat?: ResponseFormat;
+  /** Stop sequences. */
+  stopSequences?: string[];
+  /** Per-call timeout override. */
+  timeout?: number;
+  /** Optional tag for cost attribution and audit logs. */
+  callerTag?: string;
+}
+
+export interface CompletionUsage {
+  inputTokens: number;
+  outputTokens: number;
+  /** Tokens read from prompt cache, when supported. */
+  cacheReadTokens?: number;
+  /** Tokens written to prompt cache, when supported. */
+  cacheWriteTokens?: number;
+  /** Estimated USD cost for this call, when computable. */
+  estimatedCostUsd?: number;
+}
+
+export type FinishReason =
+  | 'stop'
+  | 'max_tokens'
+  | 'content_filter'
+  | 'tool_use'
+  | 'error';
+
+export interface CompletionResult {
+  /** Raw text content of the completion. */
+  content: string;
+  /** Model that actually produced the response (after tier resolution). */
+  model: string;
+  /** Token usage and cost. */
+  usage: CompletionUsage;
+  /** Why the model stopped generating. */
+  finishReason: FinishReason;
+  /** Parsed JSON, present when `responseFormat` was json/json_schema. */
+  parsedJson?: unknown;
+  /** Provider-native response, kept for audit/replay. */
+  raw?: unknown;
 }
 
 export abstract class AIProvider {
-  protected config: AIProviderConfig;
-  protected logger: any;
+  abstract readonly type: AIProviderType;
+
+  protected readonly config: AIProviderConfig;
 
   constructor(config: AIProviderConfig) {
     this.config = config;
-    this.validateConfig();
   }
 
-  /**
-   * 驗證配置
-   */
-  abstract validateConfig(): void;
-
-  /**
-   * 初始化提供商
-   */
+  /** Validate config and prepare HTTP/SDK clients. Idempotent. */
   abstract initialize(): Promise<void>;
 
-  /**
-   * 審查代碼
-   */
-  abstract reviewCode(diff: string, files: string[], strictMode: boolean): Promise<ReviewResult>;
-
-  /**
-   * 檢查連接是否有效
-   */
+  /** Lightweight connectivity check. */
   abstract testConnection(): Promise<boolean>;
 
-  /**
-   * 獲取提供商名稱
-   */
-  abstract getName(): string;
+  /** Resolve a tier → model id using `config.models` and provider defaults. */
+  abstract resolveModel(tier: ModelTier): string;
 
-  /**
-   * 獲取可用的模型列表
-   */
-  abstract listModels(): Promise<string[]>;
-
-  /**
-   * 構建審查提示詞
-   */
-  protected buildReviewPrompt(diff: string, files: string[], strictMode: boolean): string {
-    const fileInfo = files.length > 0 ? `Files: ${files.join(', ')}` : 'Files: Unknown';
-    const strictModifier = strictMode
-      ? 'STRICT mode: Check everything including code style, performance, security, testing coverage.'
-      : 'Check for: critical issues, security problems, code quality.';
-
-    return `You are an expert code reviewer. Review the following code changes.
-
-${strictModifier}
-
-${fileInfo}
-
-Code diff:
-\`\`\`diff
-${diff}
-\`\`\`
-
-Respond ONLY with valid JSON in this format:
-{
-  "passed": boolean,
-  "summary": "string",
-  "issues": ["issue 1", "issue 2"],
-  "suggestions": ["suggestion 1"],
-  "severity": "critical|warning|info",
-  "estimatedFixTime": number
-}`;
-  }
-
-  /**
-   * 解析 AI 響應
-   */
-  protected parseResponse(content: string): ReviewResult {
-    try {
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error('Could not find JSON in response');
-      }
-
-      const parsed = JSON.parse(jsonMatch[0]);
-
-      return {
-        passed: parsed.passed ?? false,
-        summary: parsed.summary ?? 'Review complete',
-        issues: parsed.issues ?? [],
-        suggestions: parsed.suggestions ?? [],
-        severity: parsed.severity ?? 'info',
-        estimatedFixTime: parsed.estimatedFixTime ?? 5,
-        metadata: parsed.metadata,
-      };
-    } catch (error) {
-      throw new Error(`Failed to parse AI response: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-  }
+  /** The orchestrator's only call-out: prompt → completion. */
+  abstract complete(prompt: string, options?: CompletionOptions): Promise<CompletionResult>;
 }
