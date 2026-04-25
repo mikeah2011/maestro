@@ -75,3 +75,38 @@ export { CommitThrottle, CommitThrottleError } from './core/round/CommitThrottle
 
 export type { LoopState, StateMachineOptions } from './core/state/StateMachine';
 export { StateMachine, StateTransitionError } from './core/state/StateMachine';
+
+// Convergence primitives (M3)
+export type {
+  ConvergenceStatus,
+  ConvergenceResult,
+} from './core/convergence/ConvergenceMonitor';
+export {
+  ConvergenceMonitor,
+  computeContentHash,
+  computeFindingHash,
+  lineBucket,
+} from './core/convergence/ConvergenceMonitor';
+
+// Classifier (M3)
+export type {
+  ClassifierAuditEntry,
+  ClassifierOptions,
+} from './core/classify/Classifier';
+export { Classifier } from './core/classify/Classifier';
+
+// Deduplication (M3)
+export type {
+  DedupTierStats,
+  DedupResult,
+  DedupOptions,
+} from './core/dedup/Dedup';
+export { Dedup, levenshtein, normalizedSimilarity } from './core/dedup/Dedup';
+
+// Secret scanner (M3)
+export type {
+  SecretPattern,
+  SecretFinding,
+  SecretScanResult,
+} from './core/security/SecretScanner';
+export { SecretScanner } from './core/security/SecretScanner';
