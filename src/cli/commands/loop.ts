@@ -13,6 +13,7 @@
 
 import type { Command } from 'commander';
 import chalk from 'chalk';
+import simpleGit from 'simple-git';
 import { loadConfig, ConfigError } from '../../config';
 import { GitHubPlatform } from '../../platforms/github/GitHubPlatform';
 import { LoopOrchestrator } from '../../core/loop/LoopOrchestrator';
@@ -23,6 +24,7 @@ import { FixEngine } from '../../core/fix/FixEngine';
 import { Classifier } from '../../core/classify/Classifier';
 import type { AIProvider } from '../../ai/interfaces/AIProvider';
 import type { Finding, FindingClassification } from '../../core/types/Finding';
+import type { RoundCommit } from '../../core/round/CommitThrottle';
 
 const NOT_YET = 4;
 
@@ -115,13 +117,34 @@ export function registerLoopCommand(program: Command): void {
         onFix = (findings, round) => fixEngine.fix(findings, round);
       }
 
+      // Wire commit+push (skipped in dry-run)
+      const git = simpleGit();
+      const onCommit = async (commit: RoundCommit): Promise<string> => {
+        try {
+          const files = commit.fixes.flatMap((f) => Array.from(f.files ?? [])).filter(Boolean);
+          if (files.length > 0) {
+            await git.add(files);
+          } else {
+            await git.add('-A');
+          }
+          const result = await git.commit(commit.message);
+          const sha = result.commit;
+          await git.push();
+          emitter.emit('commit.pushed', { sha, round: commit.round, fixCount: commit.fixes.length });
+          return sha;
+        } catch (err) {
+          console.error(chalk.red(`commit/push error: ${err instanceof Error ? err.message : String(err)}`));
+          return '';
+        }
+      };
+
       // Run the loop
       const orchestrator = new LoopOrchestrator({
         platform,
         emitter,
         classifier,
         onFix: isDryRun ? async () => [] : onFix,
-        onCommit: isDryRun ? async () => '' : undefined,
+        onCommit: isDryRun ? async () => '' : onCommit,
         ciPollIntervalMs: 10_000,
         botPollIntervalMs: 30_000,
         botTimeoutMs: config.stopConditions.quietPeriodSec * 1000,
@@ -177,7 +200,7 @@ const PRETTY: Record<string, (p: Record<string, unknown>) => string> = {
   'ci.polling':       (p) => chalk.gray(`  ⏳ 等待 CI… pending=${p['pending']}  failing=${p['failing']}`),
   'bots.polling':     ()  => chalk.gray(`  ⏳ 等待機器人發佈審查…`),
   'round.start':      (p) => chalk.bold.yellow(`\n━━ 第 ${p['round']} 輪 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━`),
-  'classify.result':  (p) => chalk.white(`  🔍 分類：${p['category']}  嚴重度=${p['severity']}`),
+  'classify.result':  (p) => chalk.white(`  🔍 ${p['file']}${p['line'] != null ? `:${p['line']}` : ''}  分類=${p['category']}  信心=${String(p['confidence']).slice(0, 4)}`),
   'fix.applied':      (p) => chalk.green(`  ✅ 修復：${p['description']}`),
   'fix.skipped':      (p) => chalk.gray(`  ⏭  跳過修復：${p['reason']}`),
   'commit.pushed':    (p) => chalk.green(`  📦 提交推送：${p['sha']}`),
@@ -185,6 +208,7 @@ const PRETTY: Record<string, (p: Record<string, unknown>) => string> = {
   'thread.resolved':  ()  => chalk.blue(`  ✔  討論串已解決`),
   'reviewers.requested': (p) => chalk.blue(`  🔄 重新請求審查：${(p['bots'] as string[]).join(', ')}`),
   'rerequest.skipped':   ()  => chalk.gray(`  ⏭  跳過重新請求（仍有未關閉討論串）`),
+  'round.waiting':    (p) => chalk.gray(`  ⏱  等待 ${Math.round((p['intervalMs'] as number) / 60000)} 分鐘讓 bot 重新審查...`),
   'loop.done':        (p) => chalk.bold(`\n◼ 循環結束  原因=${p['reason']}  共 ${p['rounds']} 輪`),
 };
 

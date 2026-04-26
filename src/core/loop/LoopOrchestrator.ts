@@ -66,6 +66,8 @@ export interface LoopOrchestratorOptions {
   botPollIntervalMs?: number;
   /** Max milliseconds to wait for bot reviews before declaring timeout. Default 300_000. */
   botTimeoutMs?: number;
+  /** Milliseconds to wait between rounds to give bots time to re-review. Default 300_000 (5 min). */
+  roundIntervalMs?: number;
   /** Sleep implementation — swap out in tests for immediate resolution. */
   sleep?: (ms: number) => Promise<void>;
   /**
@@ -82,6 +84,7 @@ export interface LoopOrchestratorOptions {
 const DEFAULT_CI_POLL_MS = 10_000;
 const DEFAULT_BOT_POLL_MS = 30_000;
 const DEFAULT_BOT_TIMEOUT_MS = 300_000;
+const DEFAULT_ROUND_INTERVAL_MS = 300_000; // 5 min — give bots time to re-review
 const DEFAULT_MAX_ROUNDS = 3;
 
 const defaultSleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
@@ -100,6 +103,7 @@ export class LoopOrchestrator {
   private readonly ciPollIntervalMs: number;
   private readonly botPollIntervalMs: number;
   private readonly botTimeoutMs: number;
+  private readonly roundIntervalMs: number;
   private readonly sleep: (ms: number) => Promise<void>;
   private readonly botTriggerComments: Record<string, string>;
 
@@ -115,6 +119,7 @@ export class LoopOrchestrator {
     this.ciPollIntervalMs = opts.ciPollIntervalMs ?? DEFAULT_CI_POLL_MS;
     this.botPollIntervalMs = opts.botPollIntervalMs ?? DEFAULT_BOT_POLL_MS;
     this.botTimeoutMs = opts.botTimeoutMs ?? DEFAULT_BOT_TIMEOUT_MS;
+    this.roundIntervalMs = opts.roundIntervalMs ?? DEFAULT_ROUND_INTERVAL_MS;
     this.sleep = opts.sleep ?? defaultSleep;
     this.botTriggerComments = opts.botTriggerComments ?? {};
   }
@@ -138,8 +143,25 @@ export class LoopOrchestrator {
         return { finalState: 'stopped', rounds: 0, reason: 'stopped' };
       }
 
+      // ── Pre-populate saturated bots from existing PR comments ─────────
+      // Bots that have already posted terminal messages (usage limits, etc.)
+      // should not be re-requested even in the first round.
+      const requestedBots = new Set<string>();
+      try {
+        const prComments = await this.platform.listPRComments(prNumber);
+        const TERMINAL_PATTERNS = [
+          /reached your codex usage limits/i,
+          /usage limit/i,
+          /quota exceeded/i,
+        ];
+        for (const c of prComments) {
+          if (c.isBot && TERMINAL_PATTERNS.some((p) => p.test(c.body))) {
+            requestedBots.add(c.login);
+          }
+        }
+      } catch { /* non-fatal — proceed without pre-population */ }
+
       // ── Main convergence loop ──────────────────────────────────────────
-      const requestedBots = new Set<string>(); // track bots already re-requested this loop run
       for (;;) {
         round++;
 
@@ -188,6 +210,14 @@ export class LoopOrchestrator {
         const classified = await Promise.all(
           findings.map(async (f) => {
             const cls = await budget.classify(f.hash, () => this.classifier.classify(f));
+            this.emitter?.emit('classify.result', {
+              round,
+              category: cls.category,
+              severity: f.severity,
+              confidence: cls.confidence,
+              file: f.location.file ?? 'unknown',
+              line: f.location.startLine,
+            });
             return { ...f, classification: cls };
           }),
         );
@@ -228,7 +258,16 @@ export class LoopOrchestrator {
         sm.transition('fixing', { round });
 
         const actionable = dedupResult.unique.filter((f) => f.classification?.category === 'bug');
+
+        if (!dryRun && actionable.length === 0) {
+          this.emitter?.emit('fix.skipped', { round, reason: 'no_actionable_bugs' });
+        }
+
         const fixes = !dryRun && actionable.length > 0 ? await this.onFix(actionable, round) : [];
+
+        for (const fix of fixes) {
+          this.emitter?.emit('fix.applied', { round, description: fix.description, files: fix.files });
+        }
 
         // ── Commit ───────────────────────────────────────────────────────
         sm.transition('commit_pushed', { round });
@@ -295,6 +334,12 @@ export class LoopOrchestrator {
 
         // ── Next round ───────────────────────────────────────────────────
         budget.nextRound();
+
+        // Wait between rounds to give bots time to re-review before polling again.
+        if (!dryRun && round < maxRounds) {
+          this.emitter?.emit('round.waiting', { round, intervalMs: this.roundIntervalMs });
+          await this.sleep(this.roundIntervalMs);
+        }
 
         const updatedPr = await this.platform.getPullRequest(prNumber);
         sm.transition('waiting_for_ci', { round: round + 1 });
