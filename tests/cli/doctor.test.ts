@@ -30,7 +30,7 @@ describe('runDoctor — failure modes', () => {
     const { ok, results } = await runDoctor({ cwd: tmpRoot, env: {} });
     expect(ok).toBe(false);
 
-    const cfgCheck = results.find((r) => r.name === '.maestro.yaml present');
+    const cfgCheck = results.find((r) => r.name === '.maestro.yaml');
     expect(cfgCheck?.status).toBe('fail');
   });
 

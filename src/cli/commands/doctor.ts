@@ -54,14 +54,30 @@ function checkGit(cwd: string): CheckResult {
 
 function checkConfig(cwd: string): { result: CheckResult; config?: MaestroConfig } {
   const repoConfigPath = resolve(cwd, '.maestro.yaml');
+
   if (!existsSync(repoConfigPath)) {
-    return {
-      result: {
-        name: '.maestro.yaml present',
-        status: 'fail',
-        detail: `not found at ${repoConfigPath}; run \`maestro init\``,
-      },
-    };
+    // No .maestro.yaml — try loading from git remote + defaults only.
+    try {
+      const config = loadConfig({ cwd });
+      const owner = config.platform.owner ?? '?';
+      const repo = config.platform.repo ?? '?';
+      return {
+        result: {
+          name: '.maestro.yaml',
+          status: 'warn',
+          detail: `not found — using git remote auto-detect (${owner}/${repo}); run \`maestro init\` to persist settings`,
+        },
+        config,
+      };
+    } catch {
+      return {
+        result: {
+          name: '.maestro.yaml',
+          status: 'fail',
+          detail: `not found at ${repoConfigPath} and no git remote detected; run \`maestro init\``,
+        },
+      };
+    }
   }
 
   try {
@@ -117,9 +133,6 @@ function checkPlatformToken(config: MaestroConfig, env: NodeJS.ProcessEnv): Chec
 
 function checkAIProvider(config: MaestroConfig, env: NodeJS.ProcessEnv): CheckResult {
   const providers = Object.entries(config.ai.providers);
-  if (providers.length === 0) {
-    return { name: 'AI provider configured', status: 'warn', detail: 'no providers in .maestro.yaml' };
-  }
 
   const failed: string[] = [];
   const passed: string[] = [];
@@ -135,13 +148,28 @@ function checkAIProvider(config: MaestroConfig, env: NodeJS.ProcessEnv): CheckRe
     }
   }
 
-  if (failed.length === 0) {
+  if (passed.length > 0) {
     return { name: 'AI provider keys', status: 'pass', detail: `ok: ${passed.join(', ')}` };
   }
+
+  // Fallback: check if `claude` CLI is available (ClaudeCodeProvider — no API key needed)
+  try {
+    const claudePath = execSync('which claude', { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
+    if (claudePath) {
+      return {
+        name: 'AI provider keys',
+        status: 'pass',
+        detail: `claude CLI at ${claudePath} (ClaudeCodeProvider fallback — no API key required)`,
+      };
+    }
+  } catch {
+    // `which` failed — claude not in PATH
+  }
+
   return {
     name: 'AI provider keys',
-    status: 'fail',
-    detail: `missing keys for: ${failed.join(', ')}`,
+    status: 'warn',
+    detail: `no API keys set and claude CLI not found — fix engine will be disabled. Missing: ${failed.join(', ')}`,
   };
 }
 

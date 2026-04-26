@@ -173,6 +173,7 @@ export class GitHubPlatform extends GitPlatform {
       new Octokit({
         auth: token,
         ...(baseUrl ? { baseUrl } : {}),
+        log: { debug: () => {}, info: () => {}, warn: () => {}, error: () => {} },
       });
 
     const authedGraphql = graphqlFn.defaults({

@@ -177,6 +177,8 @@ function mapReviewState(s: string, body?: string): BotReview['state'] {
   // Bots like GitHub Copilot submit COMMENTED reviews when they find nothing new.
   // Treat "generated no new comments" as satisfied so the loop can stop waiting.
   if (body && /generated no new comments/i.test(body)) return 'satisfied';
+  // Codex quota exhausted — treat as satisfied so we don't keep re-requesting.
+  if (body && /reached your codex usage limits/i.test(body)) return 'satisfied';
   return 'commented';
 }
 

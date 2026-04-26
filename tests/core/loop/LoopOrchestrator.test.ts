@@ -368,12 +368,12 @@ describe('LoopOrchestrator', () => {
         threadRounds: [[thread]],
       });
 
-      // Approved on round 1 → no fixing needed → no replies for bug findings (approved before classify)
+      // Approved on round 1 but open thread → classify → reply (even unknown findings get a reply now) → resolve → stop
       const orc = new LoopOrchestrator(makeOrchestratorOpts(platform));
       await orc.run({ prNumber: 42, maxRounds: 3 });
 
-      // Approved stops before replying loop
-      expect(platform.repliedThreads).toHaveLength(0);
+      // Open thread should receive a reply regardless of classification category
+      expect(platform.repliedThreads).toHaveLength(1);
     });
 
     it('resolves threads for bug findings when a fix was committed', async () => {

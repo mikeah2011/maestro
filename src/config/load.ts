@@ -29,6 +29,8 @@ export interface LoadConfigOptions {
   overrides?: DeepPartial<MaestroConfig>;
   /** Process env to read from (defaults to `process.env`). */
   env?: NodeJS.ProcessEnv;
+  /** Git remote name to use for auto-detecting owner/repo. Defaults to upstream→origin fallback. */
+  remote?: string;
 }
 
 export class ConfigError extends Error {
@@ -114,6 +116,59 @@ function applyEnvOverrides(env: NodeJS.ProcessEnv): DeepPartial<MaestroConfig> {
   return overrides;
 }
 
+/** Parse platform type, owner, and repo from a git remote URL. */
+function parseRemoteUrl(url: string): { type: 'github' | 'gitlab' | 'gitea' | 'gitee'; owner: string; repo: string } | null {
+  const platformFromHost = (host: string): 'github' | 'gitlab' | 'gitea' | 'gitee' => {
+    if (host.includes('github')) return 'github';
+    if (host.includes('gitlab')) return 'gitlab';
+    if (host.includes('gitee')) return 'gitee';
+    return 'gitea';
+  };
+
+  // SSH: git@github.com:owner/repo.git
+  const sshMatch = url.match(/[^@]+@([^:]+):([^/]+)\/(.+?)(?:\.git)?$/);
+  if (sshMatch?.[1] && sshMatch[2] && sshMatch[3]) {
+    return { type: platformFromHost(sshMatch[1]), owner: sshMatch[2], repo: sshMatch[3] };
+  }
+  // HTTPS: https://github.com/owner/repo.git
+  const httpsMatch = url.match(/https?:\/\/([^/]+)\/([^/]+)\/(.+?)(?:\.git)?$/);
+  if (httpsMatch?.[1] && httpsMatch[2] && httpsMatch[3]) {
+    return { type: platformFromHost(httpsMatch[1]), owner: httpsMatch[2], repo: httpsMatch[3] };
+  }
+  return null;
+}
+
+/** Detect platform type/owner/repo from a git remote URL in cwd. */
+function detectGitRemote(cwd: string, preferredRemote?: string): DeepPartial<MaestroConfig> {
+  try {
+    const { execSync } = require('node:child_process') as typeof import('node:child_process');
+    // If a specific remote is requested, try only that one; otherwise upstream→origin fallback
+    const candidates = preferredRemote ? [preferredRemote] : ['upstream', 'origin'];
+    let url: string | null = null;
+    for (const remote of candidates) {
+      try {
+        const out = execSync(`git remote get-url ${remote}`, { cwd, stdio: ['ignore', 'pipe', 'ignore'] })
+          .toString()
+          .trim();
+        if (out && !out.startsWith('DISABLED')) { url = out; break; }
+      } catch { /* try next */ }
+    }
+    if (!url) return {};
+    const parsed = parseRemoteUrl(url);
+    if (!parsed) return {};
+    return {
+      platform: {
+        type: parsed.type,
+        owner: parsed.owner,
+        repo: parsed.repo,
+        auth: { tokenEnv: parsed.type === 'github' ? 'GITHUB_TOKEN' : parsed.type === 'gitlab' ? 'GITLAB_TOKEN' : 'GITEA_TOKEN' },
+      },
+    };
+  } catch {
+    return {};
+  }
+}
+
 /**
  * Load + layer + validate. Returns a fully-typed `MaestroConfig`. Throws
  * `ConfigError` on validation failure with a human-readable message.
@@ -126,6 +181,7 @@ export function loadConfig(options: LoadConfigOptions = {}): MaestroConfig {
 
   const userLayer = readYamlIfExists(userPath) ?? {};
   const repoLayer = readYamlIfExists(repoPath) ?? {};
+  const gitRemoteLayer = detectGitRemote(cwd, options.remote);
 
   const expandedUser = expandValue(userLayer, env);
   const expandedRepo = expandValue(repoLayer, env);
@@ -133,8 +189,12 @@ export function loadConfig(options: LoadConfigOptions = {}): MaestroConfig {
   const envOverrides = applyEnvOverrides(env);
   const cliOverrides = options.overrides ?? {};
 
+  // Precedence: cli > env > repo yaml > user yaml > git remote auto-detect
   const merged = deepMerge(
-    deepMerge(deepMerge(expandedUser as Plain, expandedRepo as Plain), envOverrides as Plain),
+    deepMerge(
+      deepMerge(deepMerge(gitRemoteLayer as Plain, expandedUser as Plain), expandedRepo as Plain),
+      envOverrides as Plain,
+    ),
     cliOverrides as Plain,
   );
 

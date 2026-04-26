@@ -38,6 +38,8 @@ export interface LoopRunOptions {
   maxRounds?: number;
   /** Only accept findings from these bot logins. Empty = accept all bots. */
   botFilter?: string[];
+  /** Classify and report findings only — skip fix, commit, reply, resolve, and re-request. */
+  dryRun?: boolean;
 }
 
 export interface LoopResult {
@@ -118,7 +120,7 @@ export class LoopOrchestrator {
   }
 
   async run(options: LoopRunOptions): Promise<LoopResult> {
-    const { prNumber, maxRounds = DEFAULT_MAX_ROUNDS, botFilter = [] } = options;
+    const { prNumber, maxRounds = DEFAULT_MAX_ROUNDS, botFilter = [], dryRun = false } = options;
 
     const sm = new StateMachine({ initialState: 'waiting_for_ci', emitter: this.emitter });
     const budget = new RoundBudget(1);
@@ -137,6 +139,7 @@ export class LoopOrchestrator {
       }
 
       // ── Main convergence loop ──────────────────────────────────────────
+      const requestedBots = new Set<string>(); // track bots already re-requested this loop run
       for (;;) {
         round++;
 
@@ -225,12 +228,12 @@ export class LoopOrchestrator {
         sm.transition('fixing', { round });
 
         const actionable = dedupResult.unique.filter((f) => f.classification?.category === 'bug');
-        const fixes = actionable.length > 0 ? await this.onFix(actionable, round) : [];
+        const fixes = !dryRun && actionable.length > 0 ? await this.onFix(actionable, round) : [];
 
         // ── Commit ───────────────────────────────────────────────────────
         sm.transition('commit_pushed', { round });
 
-        if (fixes.length > 0) {
+        if (!dryRun && fixes.length > 0) {
           const throttle = new CommitThrottle(round);
           for (const fix of fixes) {
             throttle.add({ findingHash: fix.findingHash, description: fix.description, files: fix.files });
@@ -242,28 +245,26 @@ export class LoopOrchestrator {
         }
 
         // ── Reply in threads ─────────────────────────────────────────────
-        if (this.platform.capabilities.inlineReplies) {
-          sm.transition('replying', { round });
+        sm.transition('replying', { round });
 
+        let repliedCount = 0;
+        if (!dryRun && this.platform.capabilities.inlineReplies) {
           for (const finding of dedupResult.unique) {
             if (!finding.threadId) continue;
             const reply = this.buildReplyBody(finding, fixes);
             if (!reply) continue;
             const sanitized = this.secretScanner.scan(reply).redacted;
             await this.platform.replyInThread(finding.threadId, sanitized);
+            repliedCount++;
             budget.recordReply(finding.threadId);
             this.emitter?.emit('thread.replied', { threadId: finding.threadId, category: finding.classification?.category });
           }
-        } else {
-          sm.transition('replying', { round });
         }
 
         // ── Resolve threads ───────────────────────────────────────────────
-        // Every finding that received a reply is also resolved — we always
-        // reply first (有求必應) and then close the thread on behalf of the author.
         sm.transition('resolving', { round });
 
-        if (this.platform.capabilities.threadResolve) {
+        if (!dryRun && this.platform.capabilities.threadResolve) {
           for (const finding of dedupResult.unique) {
             if (!finding.threadId) continue;
             await this.platform.resolveReviewThread(finding.threadId);
@@ -271,20 +272,25 @@ export class LoopOrchestrator {
           }
         }
 
-        // ── Re-request review from bots that haven't approved ────────────
-        // Fetch fresh reviews to check current thread state after resolving.
-        // If any threads are still open, skip re-request to avoid noise.
-        const freshReviews = await this.platform.listReviews(prNumber);
-        const hasOpenThreads = freshReviews.some((r) =>
-          (r.threads ?? []).some((t) => !t.isResolved),
-        );
-        if (!hasOpenThreads) {
-          await this.reRequestBotReviews(prNumber, botFilter, freshReviews);
-        } else {
-          this.emitter?.emit('rerequest.skipped', {
-            prNumber,
-            reason: 'open_threads',
-          });
+        // ── Re-request review — only once per bot per loop run ──────────
+        // Condition: replied to at least one thread AND all threads resolved AND bot not yet requested this run
+        if (!dryRun && repliedCount > 0) {
+          const freshReviews = await this.platform.listReviews(prNumber);
+          const hasOpenThreads = freshReviews.some((r) =>
+            (r.threads ?? []).some((t) => !t.isResolved),
+          );
+          if (!hasOpenThreads) {
+            // Filter to bots not yet re-requested this loop run
+            const eligibleReviews = freshReviews.filter(
+              (r) => r.state !== 'approved' && r.state !== 'satisfied' && !requestedBots.has(r.bot.login),
+            );
+            if (eligibleReviews.length > 0) {
+              await this.reRequestBotReviews(prNumber, botFilter, eligibleReviews);
+              for (const r of eligibleReviews) requestedBots.add(r.bot.login);
+            }
+          } else {
+            this.emitter?.emit('rerequest.skipped', { prNumber, reason: 'open_threads' });
+          }
         }
 
         // ── Next round ───────────────────────────────────────────────────
@@ -448,13 +454,13 @@ export class LoopOrchestrator {
 
   private buildReplyBody(finding: Finding, fixes: FixResult[]): string | null {
     const category = finding.classification?.category;
-    if (!category || category === 'unknown' || category === 'duplicate') return null;
+    if (category === 'duplicate') return null;
 
     switch (category) {
       case 'bug': {
         const fix = fixes.find((f) => f.findingHash === finding.hash);
         if (fix) return `已在本輪修復：${fix.description}`;
-        return null;
+        return '已收到，列入下一輪修復佇列。';
       }
       case 'wrong': {
         const reasoning = finding.classification?.reasoning;
@@ -466,8 +472,9 @@ export class LoopOrchestrator {
         return '已記錄，這屬於風格偏好，將遵循團隊慣例處理。';
       case 'yagni':
         return '問題有效，但超出本次 PR 範圍，已記錄為後續追蹤項目。';
+      case 'unknown':
       default:
-        return null;
+        return '已收到此評論，正在評估處理方式。';
     }
   }
 }

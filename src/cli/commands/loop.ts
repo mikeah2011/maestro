@@ -43,17 +43,19 @@ export function registerLoopCommand(program: Command): void {
     .option('--cost-budget <usd>', 'override stopConditions.costBudgetUSD', parseFloat)
     .option('--bots <logins>', 'comma-separated bot logins to watch (default: all bots)')
     .option('--dry-run', 'classify and report findings but skip fix, commit, and reply')
-    .action(async (opts: { pr: string; maxRounds?: number; costBudget?: number; bots?: string; dryRun?: boolean }) => {
+    .option('--remote <name>', 'git remote to use for owner/repo auto-detect (default: upstream → origin)')
+    .action(async (opts: { pr: string; maxRounds?: number; costBudget?: number; bots?: string; dryRun?: boolean; remote?: string }) => {
       const prNumber = parseInt(opts.pr, 10);
       if (!Number.isFinite(prNumber) || prNumber < 1) {
         console.error(chalk.red(`error: --pr must be a positive integer, got "${opts.pr}"`));
         process.exit(2);
       }
 
-      // Load config
+      // Load config — --remote controls which git remote is used for owner/repo auto-detection
       let config;
       try {
         config = loadConfig({
+          remote: opts.remote,
           overrides: opts.maxRounds !== undefined ? { stopConditions: { maxRounds: opts.maxRounds } } : undefined,
         });
       } catch (err) {
@@ -128,7 +130,7 @@ export function registerLoopCommand(program: Command): void {
         },
       });
 
-      const result = await orchestrator.run({ prNumber, maxRounds, botFilter });
+      const result = await orchestrator.run({ prNumber, maxRounds, botFilter, dryRun: isDryRun });
 
       emitter.emit('loop.done', result as unknown as Record<string, unknown>);
 
