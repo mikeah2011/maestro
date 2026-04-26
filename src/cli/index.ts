@@ -20,7 +20,11 @@
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { config as dotenvConfig } from 'dotenv';
 import { Command } from 'commander';
+
+// Load .env from the repo root (silently skipped if file doesn't exist)
+dotenvConfig({ path: resolve(process.cwd(), '.env') });
 import chalk from 'chalk';
 import { registerInitCommand } from './commands/init';
 import { registerDoctorCommand } from './commands/doctor';

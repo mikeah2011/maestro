@@ -50,7 +50,7 @@ describe('M2 primitives — round lifecycle integration', () => {
     expect(commit.fixes).toHaveLength(2);
     expect(commit.message).toContain('round 1');
     expect(budget.snapshot().commits).toBe(1);
-    expect(events.find((e) => e.kind === 'state.transition' && e.payload.to === 'commit_pushed')).toBeDefined();
+    expect(events.find((e) => e.type === 'state.transition' && e.payload.to === 'commit_pushed')).toBeDefined();
   });
 
   it('blocks a second commit attempt within the same round', () => {
@@ -83,7 +83,7 @@ describe('M2 primitives — round lifecycle integration', () => {
     sm.transition('preflight');
     emitter.emit('audit.log', { note: 'mid-preflight' });
 
-    const audits = events.filter((e) => e.kind === 'audit.log');
+    const audits = events.filter((e) => e.type === 'audit.log');
     expect(audits).toHaveLength(2);
     expect(audits[0].state).toBe('writing');
     expect(audits[1].state).toBe('preflight');

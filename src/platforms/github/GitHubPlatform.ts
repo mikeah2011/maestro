@@ -256,6 +256,16 @@ export class GitHubPlatform extends GitPlatform {
     });
   }
 
+  async createPRComment(prNumber: number, body: string): Promise<void> {
+    const { owner, repo } = await this.ownerRepo();
+    await this.octokit.rest.issues.createComment({
+      owner,
+      repo,
+      issue_number: prNumber,
+      body,
+    });
+  }
+
   // ─── Reviews & threads ───────────────────────────────────────────────────
 
   async listReviews(prNumber: number, since?: Date): Promise<BotReview[]> {

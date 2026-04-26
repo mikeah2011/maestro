@@ -79,6 +79,8 @@ export abstract class GitPlatform {
   abstract getPullRequestDiff(prNumber: number): Promise<PullRequestDiff>;
   abstract updatePullRequestBody(prNumber: number, body: string): Promise<void>;
   abstract requestReviewers(prNumber: number, reviewers: string[]): Promise<void>;
+  /** Post a top-level PR issue comment (used to trigger bots via @mention). */
+  abstract createPRComment(prNumber: number, body: string): Promise<void>;
 
   // ─── Reviews & threads (orchestrator core) ────────────────────────────
   /**

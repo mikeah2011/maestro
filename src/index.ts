@@ -111,6 +111,24 @@ export type {
 } from './core/security/SecretScanner';
 export { SecretScanner } from './core/security/SecretScanner';
 
+// Loop orchestrator (M5)
+export type {
+  FixResult,
+  LoopRunOptions,
+  LoopResult,
+  LoopOrchestratorOptions,
+} from './core/loop/LoopOrchestrator';
+export { LoopOrchestrator } from './core/loop/LoopOrchestrator';
+
+// AI providers (M6)
+export { ClaudeProvider } from './ai/providers/ClaudeProvider';
+export type { ClaudeCodeProviderOptions } from './ai/providers/ClaudeCodeProvider';
+export { ClaudeCodeProvider } from './ai/providers/ClaudeCodeProvider';
+
+// Fix engine (M6)
+export type { FixEngineOptions } from './core/fix/FixEngine';
+export { FixEngine } from './core/fix/FixEngine';
+
 // GitHub platform (M4)
 export type { GraphQLClient, GitHubClients } from './platforms/github/GitHubPlatform';
 export { GitHubPlatform } from './platforms/github/GitHubPlatform';

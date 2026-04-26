@@ -1,188 +1,231 @@
 # Maestro
 
-> Orchestrate every AI PR review bot. Close the loop. Ship merged.
+> 統一調度 AI PR 審查機器人。讓收斂循環自動完成。讓 PR 真正合併。
 
-`maestro` is **not another code reviewer.** CodeRabbit, Ellipsis, Copilot Code Review, Codex, Gemini Code Assist, Sourcery — those are already excellent reviewers. The missing piece is what happens *after* the review: classifying findings, fixing real bugs, replying in-thread, resolving threads, requesting re-review, knowing when to stop. `maestro` is the convergence layer on top of your bots.
+`maestro` **不是另一個程式碼審查工具。** CodeRabbit、Ellipsis、Copilot Code Review、Codex、Gemini Code Assist、Sourcery——這些已經是很好的審查工具了。缺少的是審查之後發生的事：分類問題、修復真正的 bug、在討論串中回覆、解決討論串、請求重新審查、知道何時該停止。`maestro` 是疊加在這些機器人之上的**收斂層**。
 
 ```
-[ you push code ]
+[ 你推送程式碼 ]
        │
        ▼
-[ CodeRabbit reviews ]   [ Ellipsis reviews ]   [ Copilot reviews ]
-       │                        │                       │
-       └──────────┬─────────────┴───────────────────────┘
+[ CodeRabbit 審查 ]  [ Ellipsis 審查 ]  [ Copilot 審查 ]
+       │                    │                   │
+       └──────────┬──────────┴───────────────────┘
                   ▼
             ┌──────────┐
-            │ maestro  │  ← classify · dedup · fix · reply · resolve
+            │ maestro  │  ← 分類 · 去重 · 修復 · 回覆 · 解決討論串
             └──────────┘
                   │
                   ▼
-       (loop until ≤3 rounds OR convergence OR escalate)
+       （循環直到 ≤3 輪 或 收斂 或 升級人工處理）
                   │
                   ▼
-            [ ready to merge ]
+            [ 準備合併 ]
 ```
 
 ---
 
-## Why this exists
+## 為什麼需要這個工具
 
-CodeRabbit and Ellipsis are great at finding issues. They are not great at *finishing the conversation*. You fix five out of eight findings, push back on two, miss one real bug. Ten minutes later the bot re-reviews and finds three new ones. The loop never converges; you merge when you're tired, not when it's done.
+CodeRabbit 和 Ellipsis 很擅長找問題，但不擅長*結束對話*。你修了八個問題中的五個，推回了兩個，漏掉了一個真正的 bug。十分鐘後機器人重新審查，又找到三個新問題。循環永遠不收斂；你在疲憊時合併，而不是在完成時合併。
 
-`maestro` runs a hard-capped convergence loop with deterministic stop conditions:
+`maestro` 執行具有確定性停止條件的硬性收斂循環：
 
-- **Hard cap: 3 rounds.** No exceptions.
-- **Monotone non-increasing critical-finding set.** If round N+1 has more critical findings than round N, escalate to human.
-- **Convergence detection.** Same findings reappearing across rounds (Jaccard > 0.7) → stop and escalate.
-- **Anti-spam by construction.** Runtime assertions enforce ≤1 commit per round, ≤1 reply per thread per round, ≤1 PR-body update per round. Violations crash the process — no silent drift.
+- **硬性上限：3 輪。** 不設例外。
+- **單調不增的關鍵問題集。** 若第 N+1 輪的關鍵問題比第 N 輪多，升級給人工處理。
+- **收斂偵測。** 相同問題跨輪重複出現（Jaccard 相似度 > 0.7）→ 停止並升級。
+- **反垃圾郵件設計。** 執行期斷言強制每輪最多 1 次提交、每個討論串每輪最多 1 次回覆、每輪最多 1 次 PR 內容更新。違反即使程序崩潰——不允許靜默漂移。
 
 ---
 
-## Quick start (target UX, M1+)
+## 快速開始
+
+### 安裝需求
+
+- [Bun](https://bun.sh) >= 1.0
+- Node.js >= 20（用於二進位執行）
+- GitHub Token（具備 repo + pull_requests 讀寫權限）
+- Claude Code CLI（可選，無 API Key 時自動使用）或 Anthropic API Key
+
+### 設定步驟
 
 ```bash
-# install
-npx @mikeah2011/maestro@latest init     # scaffold .maestro.yaml
-maestro doctor                     # verify gh/glab/tea CLIs, tokens, AI keys
+# 1. 複製環境變數範本
+cp .env.template .env
 
-# run on an open PR
-maestro loop start --pr 42         # background; emits JSONL events
-maestro loop status                # see current state
-maestro audit --pr 42              # replay every classification decision
+# 2. 填入你的 GitHub Token
+#    編輯 .env，設定 GITHUB_TOKEN=ghp_你的token
+
+# 3. 設定 .maestro.yaml（編輯 owner/repo 為你的 GitHub 倉庫）
+#    .maestro.yaml 已提供完整範例，按需調整即可
+
+# 4. 驗證環境
+bun run src/cli/index.ts doctor
+
+# 5. 試跑（dry-run 模式，不會實際修改任何內容）
+bun run src/cli/index.ts loop start --pr 1 --dry-run
 ```
 
-Or in CI:
+### 常用指令
 
-```yaml
-# .github/workflows/review-loop.yml
-- uses: mikeah2011/maestro-action@v1
-  with:
-    pr: ${{ github.event.number }}
+```bash
+# 開發模式（watch）
+bun run dev
+
+# 執行 CLI
+bun run start <subcommand>
+
+# 建置 binary
+bun run build:bin       # 輸出 dist/maestro
+
+# 驗證（型別檢查 + 測試）
+bun run verify
+
+# 執行測試
+bun run test
+bun run test:coverage   # 含覆蓋率報告
+
+# 執行單一測試檔
+bunx vitest run tests/core/loop/LoopOrchestrator.test.ts
 ```
 
 ---
 
-## What's in this repo right now
+## 架構概覽
 
-`maestro` is in **active early development.** This repo currently contains:
+```
+src/
+├── cli/
+│   ├── index.ts              CLI 入口（Commander）
+│   └── commands/
+│       ├── init.ts           maestro init — 初始化 .maestro.yaml
+│       ├── doctor.ts         maestro doctor — 環境診斷
+│       ├── loop.ts           maestro loop start/status/stop/resume
+│       ├── audit.ts          maestro audit — 重播分類決策
+│       └── bots.ts           maestro bots — 機器人管理
+├── config/                   Zod schema + 多層設定載入
+├── core/
+│   ├── events/               EventEmitter — 所有領域事件流經此處
+│   ├── round/                RoundBudget（每輪配額）、CommitThrottle
+│   ├── state/                StateMachine — 循環狀態機
+│   ├── convergence/          ConvergenceMonitor — Jaccard 振盪偵測
+│   ├── classify/             Classifier — 圍欄 Markdown → bug/taste/wrong/yagni
+│   ├── dedup/                Dedup — 三層去重（精確雜湊 → 模糊 → LLM 語義）
+│   ├── security/             SecretScanner — 敏感資訊偵測
+│   ├── fix/                  FixEngine — AI 自動修復引擎
+│   └── loop/                 LoopOrchestrator — 核心收斂循環
+├── platforms/
+│   ├── interfaces/           GitPlatform 抽象介面
+│   └── github/               GitHub REST + GraphQL 實作
+└── ai/
+    ├── interfaces/           AIProvider 抽象介面
+    └── providers/
+        ├── ClaudeProvider.ts          Anthropic API（需要 API Key）
+        └── ClaudeCodeProvider.ts      Claude Code CLI（無需 API Key）
+```
 
-- **Factories** — `AIProviderFactory` and `GitPlatformFactory` (Claude/OpenAI/Gemini/local; GitHub/GitLab/Gitea/Gitee).
-- **Config example** — [`.maestro.example.yaml`](./.maestro.example.yaml) shows the orchestrator config shape (bots, stop conditions, per-stage AI routing).
-- **Design document** — [`DESIGN.md`](./DESIGN.md) is the public technical summary.
+### 循環狀態機
 
-The convergence loop, classifier, bot registry, dedup, state machine, and CLI are tracked under [milestones](#roadmap). Reference implementation in bash exists at `internal-reference-repo/scripts/auto-pr-review-loop.sh` (internal); we are porting its semantics.
+```
+等待 CI → 等待機器人 → 競速 → 分類 → 修復
+→ 提交推送 → 回覆 → 解決討論串 → 等待 CI（重複）
+
+終止狀態：stopped（手動停止）| ci_failing（CI 失敗）| bot_timeout（機器人逾時）
+```
+
+### AI Provider 自動偵測順序
+
+1. **ClaudeProvider** — 當 `ANTHROPIC_API_KEY` 或設定中的 `apiKey` 有值時使用
+2. **ClaudeCodeProvider** — 當本機已安裝 `claude` CLI 時自動 fallback（無需 API Key）
+3. **停用修復引擎** — 兩者皆不可用時，循環繼續但跳過 AI 自動修復
 
 ---
 
-## Multi-platform, multi-AI, multi-language
+## 設定說明
 
-| Layer | Pluggable surfaces |
-|---|---|
-| **AI Provider** | Claude, OpenAI, Gemini, local (Ollama), custom HTTP endpoint |
-| **Git Platform** | GitHub, GitLab, Gitea, Gitee |
-| **Review Bots** | CodeRabbit, Ellipsis, Copilot Code Review, Codex, Gemini Code Assist, Sourcery, Greptile, Cursor BugBot — plus convention-based detection for self-hosted bots |
-| **Language Plugin** | TS/JS, Python, Go, Rust (community contributions welcome) |
+設定優先順序（高 → 低）：CLI 旗標 → 環境變數 → 倉庫 `.maestro.yaml` → 使用者 `~/.maestro/config.yaml` → 預設值
 
-Per-stage AI routing keeps cost down: cheap model for commit-message generation and unknown-finding classification; strong model for PR-body drafting and final summary.
-
----
-
-## Configuration shape
-
-See [`.maestro.example.yaml`](./.maestro.example.yaml) for the full schema. Highlights:
+`.maestro.yaml` 的主要設定區塊：
 
 ```yaml
-ai:
-  routing:
-    commitMessage:    claude-haiku-4-5    # cheap
-    classification:   claude-sonnet-4-6   # strong
-    finalSummary:     claude-opus-4-7     # strongest
-    fallback:         claude-haiku-4-5
-
+# Git 平台
 platform:
   type: github
-  auth: { tokenEnv: GITHUB_TOKEN }
+  auth:
+    tokenEnv: GITHUB_TOKEN
+  owner: your-org
+  repo: your-repo
 
-bots:
-  registry:
-    - login: coderabbitai            # treatAs: blocking
-    - login: ellipsis-dev[bot]
-    - login: copilot-pull-request-reviewer
-    - login: codex-connector
+# AI Provider
+ai:
+  providers:
+    claude:
+      type: claude
+      apiKey: ${ANTHROPIC_API_KEY:-}   # 留空時自動改用 Claude Code CLI
 
+# 停止條件
 stopConditions:
-  maxRounds: 3
-  jaccardCeiling: 0.7
-  tasteDetection: { enabled: true, reviewerModel: claude-sonnet-4-6 }
-  ciFail: exit
-
-plugins:
-  languages:
-    typescript: { lint: "pnpm eslint", typecheck: "pnpm tsc --noEmit", test: "pnpm vitest run" }
+  maxRounds: 3          # 最多 3 輪（最大值 5）
+  quietPeriodSec: 90    # 機器人發文後的靜默等待期（秒）
+  costBudgetUSD: 5.00   # 單次 loop 成本上限（美元）
 ```
 
-Config layering follows git's mental model: CLI flags → env vars → repo `.maestro.yaml` → user `~/.maestro/config.yaml` → defaults.
+完整設定範例請參考 [`.maestro.yaml`](./.maestro.yaml)。
 
 ---
 
-## Comparison
+## 多平台 · 多 AI · 多語言
 
-|                                  | maestro | CodeRabbit | Ellipsis | PR-Agent | reviewdog |
+| 層級 | 支援項目 |
+|---|---|
+| **AI Provider** | Claude（API 或 CLI）、OpenAI、Gemini、本機 Ollama、自訂 HTTP |
+| **Git 平台** | GitHub、GitLab、Gitea、Gitee |
+| **審查機器人** | CodeRabbit、Ellipsis、Copilot Code Review、Codex、Gemini Code Assist、Sourcery、Greptile，以及慣例型偵測 |
+| **語言插件** | TypeScript/JS、Python、Go、Rust |
+
+---
+
+## 與其他工具的比較
+
+|                            | maestro   | CodeRabbit | Ellipsis | PR-Agent | reviewdog |
 |---|---|---|---|---|---|
-| Reviews code itself              | No¹     | Yes        | Yes      | Yes      | No (linters) |
-| Orchestrates *other* bots        | **Yes** | No         | No       | No       | No |
-| Multi-round convergence loop     | **Yes** | Partial    | Partial  | No       | No |
-| Hard stop conditions             | **Yes** | No         | No       | No       | No |
-| Anti-spam runtime invariants     | **Yes** | No         | No       | No       | No |
-| Tool-agnostic (CLI/Action/MCP)   | **Yes** | App only   | App only | Action   | Multi |
-| Self-hostable, OSS               | **Yes** | OSS subset | No       | Yes      | Yes |
+| 自行審查程式碼              | 否¹        | 是         | 是       | 是       | 否        |
+| 調度其他機器人              | **是**    | 否         | 否       | 否       | 否        |
+| 多輪收斂循環                | **是**    | 部分       | 部分     | 否       | 否        |
+| 硬性停止條件                | **是**    | 否         | 否       | 否       | 否        |
+| 反垃圾郵件執行期斷言        | **是**    | 否         | 否       | 否       | 否        |
+| 工具無關（CLI/Action/MCP）  | **是**    | 僅 App     | 僅 App   | Action   | 多種      |
+| 可自託管 · 開源             | **是**    | 部分開源   | 否       | 是       | 是        |
 
-¹ `maestro` does run local pre-push self-review (calls your AI of choice), but its core value is orchestrating external review bots.
+¹ `maestro` 在推送前執行本機 AI 自我審查，但核心價值是調度外部審查機器人。
 
 ---
 
-## Roadmap
+## 開發路線圖
 
-| Milestone | Status | What lands |
+| 里程碑 | 狀態 | 內容 |
 |---|---|---|
-| M0 — Naming + reframe | done | Repo renamed, README + config rewritten, DESIGN.md published |
-| M1 — CLI + config + Platform interface | next | Bun-compiled `maestro` binary, Zod schema, `init` + `doctor` |
-| M2 — Loop port (GitHub) | | StateMachine, RoundBudget, CommitThrottle, EventEmitter |
-| M3 — Convergence + classifier | | ConvergenceMonitor, fenced Classifier, 3-tier Dedup, SecretScanner |
-| M4 — Bot registry | | CodeRabbit + Ellipsis + Copilot + Codex parsers |
-| M5 — Other 3 platforms | | GitLab + Gitea + Gitee implementations |
-| M6 — Distribution | | GitHub Releases binaries, GitHub Action, GitLab CI Component, Claude Code skill |
-| M7 — Phase 2 | | Homebrew tap, Docker image, MCP server, more language plugins |
+| M1 — CLI + 設定 + 平台介面 | ✅ 完成 | Bun 編譯 binary、Zod schema、`init` + `doctor` |
+| M2 — 循環基礎建設 | ✅ 完成 | StateMachine、RoundBudget、CommitThrottle、EventEmitter |
+| M3 — 收斂 + 分類器 | ✅ 完成 | ConvergenceMonitor、Classifier、3 層 Dedup、SecretScanner |
+| M4 — GitHub 平台 | ✅ 完成 | GitHub REST + GraphQL 實作、型別對映 |
+| M5 — 循環編排器 | ✅ 完成 | LoopOrchestrator — 整合 M2~M4 |
+| M6 — AI 自動修復 | ✅ 完成 | ClaudeProvider、ClaudeCodeProvider、FixEngine |
+| M7 — 持久化 + 狀態管理 | 待開發 | loop status/stop/resume、JSONL 重播 |
+| M8 — 發布 | 待開發 | GitHub Releases 二進位、GitHub Action、Homebrew tap |
 
 ---
 
-## Adoption phases
+## 授權
 
-The project is being dogfooded internally before public OSS launch. Phases:
+待定——在公開發布前將採用 MIT 或 Apache-2.0 授權。
 
-- **P0 self-dogfood** (in progress) — single-author, single-repo, prove the loop converges.
-- **P1 team pilot** — 3–5 internal repos, 4 weeks, NPS + cost-per-PR metrics.
-- **P2 org-wide** — 20+ repos, runbook, on-call, p50 loop completion <30 min.
-- **P3 public OSS** — zero internal deps, external contributor onboarding works, public launch.
+## 致謝
 
----
+`maestro` 參考了以下專案的設計理念：
+- [PR-Agent (Qodo)](https://github.com/qodo-ai/pr-agent) — JSON 可設定的 LLM 提示詞、大 diff 的 PR 壓縮
+- [Gito](https://github.com/Nayjest/Gito) — 置信度優先的問題過濾
+- [reviewdog](https://github.com/reviewdog/reviewdog) — 通用 lint 輸出 → PR 評論橋接
+- [Danger.js](https://github.com/danger/danger-js) — PR 內容區塊的冪等更新模式
 
-## License
-
-Pending — will be MIT or Apache-2.0 before public release. internal use is granted under the existing employment relationship.
-
-## Contributing
-
-Public contributions are not yet open. The project will accept external contributions starting at P3 (public OSS phase). Until then, internal contributors can open PRs directly.
-
----
-
-## Acknowledgements
-
-`maestro` borrows ideas from:
-- [PR-Agent (Qodo)](https://github.com/qodo-ai/pr-agent) — JSON-configurable LLM prompts, PR compression for large diffs.
-- [Gito](https://github.com/Nayjest/Gito) — confidence-first finding filtering.
-- [reviewdog](https://github.com/reviewdog/reviewdog) — universal lint-output → PR-comment bridge (we depend on it as a static-analysis source).
-- [Danger.js](https://github.com/danger/danger-js) — idempotent comment update / cleanup pattern for the PR-body rollup section.
-
-The novel contribution is the multi-bot orchestration layer with mathematical convergence guarantees — not present in any of the above.
+核心創新是**帶有數學收斂保證的多機器人編排層**——這在上述任何專案中都不存在。

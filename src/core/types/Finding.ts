@@ -96,7 +96,7 @@ export interface BotReview {
   /** When the review was submitted. */
   submittedAt: Date;
   /** Top-level review state from the platform. */
-  state: 'commented' | 'changes_requested' | 'approved' | 'dismissed';
+  state: 'commented' | 'changes_requested' | 'approved' | 'dismissed' | 'satisfied';
   /** Top-level summary body, if any. */
   body?: string;
   /** Threads that belong to this review. */

@@ -87,6 +87,8 @@ const ConventionRuleSchema = z
   );
 
 const BotsSchema = z.object({
+  /** Bot logins maestro watches for reviews (used by `maestro bots setup`). */
+  watch: z.array(z.string()).default([]),
   registry: z.array(BotRegistryEntrySchema).default([]),
   detectByConvention: z
     .object({
@@ -202,7 +204,7 @@ const AdvancedSchema = z.object({
 export const MaestroConfigSchema = z.object({
   ai: AISchema.default({ providers: {}, routing: {} }),
   platform: PlatformSchema,
-  bots: BotsSchema.default({ registry: [], detectByConvention: { enabled: true, rules: [] } }),
+  bots: BotsSchema.default({ watch: [], registry: [], detectByConvention: { enabled: true, rules: [] } }),
   stopConditions: StopConditionsSchema.default({}),
   preflight: PreflightSchema.default({}),
   plugins: PluginsSchema.default({ languages: {} }),

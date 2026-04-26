@@ -69,7 +69,10 @@ function readYamlIfExists(path: string): Plain | null {
   if (!existsSync(path)) return null;
   try {
     const raw = readFileSync(path, 'utf8');
-    const parsed = yaml.load(raw);
+    // Use loadAll + take first doc so files with a trailing `---` separator (like the
+    // example config) don't fail with "found more than one document".
+    const docs = yaml.loadAll(raw);
+    const parsed = docs[0] ?? null;
     if (parsed === null || parsed === undefined) return {};
     if (typeof parsed !== 'object' || Array.isArray(parsed)) {
       throw new ConfigError(`${path} must be a YAML mapping at the top level, got ${typeof parsed}`);

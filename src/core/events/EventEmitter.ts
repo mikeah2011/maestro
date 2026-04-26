@@ -12,8 +12,8 @@
 export interface MaestroEvent {
   /** ISO-8601 timestamp produced by the emitter's clock. */
   ts: string;
-  /** Event type, dot-namespaced (e.g. "state.transition", "round.started"). */
-  kind: string;
+  /** Event type, dot-namespaced (e.g. "state.transition", "round.start"). */
+  type: string;
   /** Round number when the event fires, if context is set. */
   round?: number;
   /** Current state when the event fires, if context is set. */
@@ -57,10 +57,10 @@ export class EventEmitter {
     return { ...this.context };
   }
 
-  emit(kind: string, payload: Record<string, unknown> = {}): MaestroEvent {
+  emit(type: string, payload: Record<string, unknown> = {}): MaestroEvent {
     const event: MaestroEvent = {
       ts: this.clock().toISOString(),
-      kind,
+      type,
       ...this.context,
       payload,
     };

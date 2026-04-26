@@ -158,21 +158,25 @@ export function mapReview(gh: GHReview): BotReview {
     login: gh.user?.login ?? 'ghost',
     isBot: gh.user?.type === 'Bot',
   };
+  const body = gh.body ?? undefined;
   return {
     id: gh.node_id,
     bot,
     submittedAt: new Date(gh.submitted_at ?? 0),
-    state: mapReviewState(gh.state),
-    body: gh.body ?? undefined,
+    state: mapReviewState(gh.state, body),
+    body,
     threads: [],
   };
 }
 
-function mapReviewState(s: string): BotReview['state'] {
+function mapReviewState(s: string, body?: string): BotReview['state'] {
   const lower = s.toLowerCase();
   if (lower === 'approved') return 'approved';
   if (lower === 'changes_requested') return 'changes_requested';
   if (lower === 'dismissed') return 'dismissed';
+  // Bots like GitHub Copilot submit COMMENTED reviews when they find nothing new.
+  // Treat "generated no new comments" as satisfied so the loop can stop waiting.
+  if (body && /generated no new comments/i.test(body)) return 'satisfied';
   return 'commented';
 }
 
@@ -220,8 +224,7 @@ export function mapCheckRuns(runs: GHCheckRun[]): CIStatus {
   let aggregate: CICheckState;
   if (failingCount > 0) aggregate = 'failure';
   else if (pendingCount > 0) aggregate = 'pending';
-  else if (checks.length === 0) aggregate = 'pending';
-  else aggregate = 'success';
+  else aggregate = 'success'; // 無 CI 檢查或全部通過 → 視為通過
 
   return {
     state: aggregate,

@@ -44,7 +44,7 @@ const FORWARD: Readonly<Record<LoopState, ReadonlyArray<LoopState>>> = {
   fixing: ['commit_pushed'],
   commit_pushed: ['waiting_for_ci', 'replying'],
   replying: ['resolving'],
-  resolving: ['waiting_for_bot'],
+  resolving: ['waiting_for_ci', 'waiting_for_bot'],
   stopped: [],
   // Error states have a constrained recovery set.
   ci_failing: ['fixing'],

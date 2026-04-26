@@ -38,6 +38,7 @@ describe('StateMachine — happy-path forward transitions', () => {
       'commit_pushed',
       'replying',
       'resolving',
+      'waiting_for_ci',
       'waiting_for_bot',
       'stopped',
     ];
@@ -142,7 +143,7 @@ describe('StateMachine — event emission', () => {
 
     expect(events).toHaveLength(1);
     expect(events[0]).toMatchObject({
-      kind: 'state.transition',
+      type: 'state.transition',
       payload: {
         from: 'idle',
         to: 'writing',
@@ -158,7 +159,7 @@ describe('StateMachine — event emission', () => {
     sm.transition('writing');
     emitter.emit('arbitrary.event');
 
-    const arbitrary = events.find((e) => e.kind === 'arbitrary.event');
+    const arbitrary = events.find((e) => e.type === 'arbitrary.event');
     expect(arbitrary?.state).toBe('writing');
   });
 });

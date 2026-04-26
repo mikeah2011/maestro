@@ -175,6 +175,16 @@ describe('mapReview', () => {
     expect(mapReview(baseGHReview({ state: 'PENDING' })).state).toBe('commented');
   });
 
+  it('maps COMMENTED + Copilot "no new comments" body to satisfied', () => {
+    const body = 'Copilot reviewed 15 out of 17 changed files in this pull request and generated no new comments.';
+    expect(mapReview(baseGHReview({ state: 'COMMENTED', body })).state).toBe('satisfied');
+  });
+
+  it('maps COMMENTED without "no new comments" body to commented', () => {
+    const body = 'Please address the null-check issue on line 42.';
+    expect(mapReview(baseGHReview({ state: 'COMMENTED', body })).state).toBe('commented');
+  });
+
   it('initializes threads as empty array', () => {
     expect(mapReview(baseGHReview()).threads).toEqual([]);
   });
@@ -310,8 +320,8 @@ describe('mapCheckRuns', () => {
     expect(states).toContain('skipped');
   });
 
-  it('returns pending for empty check list', () => {
-    expect(mapCheckRuns([]).state).toBe('pending');
+  it('returns success for empty check list (no CI = no blocker)', () => {
+    expect(mapCheckRuns([]).state).toBe('success');
     expect(mapCheckRuns([]).totalCount).toBe(0);
   });
 

@@ -14,12 +14,12 @@ describe('EventEmitter', () => {
   it('emits an event with ISO timestamp, kind, and payload', () => {
     const { emitter, events } = captureEmitter();
 
-    emitter.emit('test.kind', { foo: 'bar' });
+    emitter.emit('test.type', { foo: 'bar' });
 
     expect(events).toHaveLength(1);
     expect(events[0]).toMatchObject({
       ts: '2026-04-25T08:00:00.000Z',
-      kind: 'test.kind',
+      type: 'test.type',
       payload: { foo: 'bar' },
     });
   });
@@ -31,7 +31,7 @@ describe('EventEmitter', () => {
     emitter.emit('round.started');
 
     expect(events[0]).toMatchObject({
-      kind: 'round.started',
+      type: 'round.started',
       round: 2,
       state: 'classifying',
     });
@@ -77,7 +77,7 @@ describe('EventEmitter', () => {
     emitter.emit('second');
 
     expect(seen).toHaveLength(1);
-    expect(seen[0].kind).toBe('first');
+    expect(seen[0].type).toBe('first');
   });
 
   it('returns the emitted event for fluent chaining', () => {
@@ -85,7 +85,7 @@ describe('EventEmitter', () => {
 
     const result = emitter.emit('returned', { n: 7 });
 
-    expect(result.kind).toBe('returned');
+    expect(result.type).toBe('returned');
     expect(result.payload).toEqual({ n: 7 });
   });
 
@@ -93,7 +93,7 @@ describe('EventEmitter', () => {
     const { toLine } = await import('../../../src/core/events/EventEmitter');
     const event: MaestroEvent = {
       ts: '2026-04-25T08:00:00.000Z',
-      kind: 'commit.pushed',
+      type: 'commit.pushed',
       round: 1,
       payload: { sha: 'abc1234' },
     };
