@@ -22,7 +22,8 @@ import { Classifier } from '../classify/Classifier';
 import { Dedup } from '../dedup/Dedup';
 import { SecretScanner } from '../security/SecretScanner';
 import type { GitPlatform } from '../../platforms/interfaces/GitPlatform';
-import type { Finding, ReviewThread, Severity } from '../types/Finding';
+import type { Finding, FindingClassification, ReviewThread, Severity } from '../types/Finding';
+import type { PullRequest, PullRequestDiff } from '../types/PullRequest';
 
 // ─── Public types ─────────────────────────────────────────────────────────────
 
@@ -60,6 +61,16 @@ export interface LoopOrchestratorOptions {
   onFix?: (findings: Finding[], round: number) => Promise<FixResult[]>;
   /** Hook to push a commit after fixing. Return commit SHA or ''. */
   onCommit?: (commit: RoundCommit) => Promise<string>;
+  /**
+   * Optional interactive decision hook — called after classification each round.
+   * Return a map of findingHash → action. Omitted hashes fall back to the
+   * AI-recommended default: bug→fix, wrong→reject, others→defer.
+   * Not called in dry-run mode.
+   */
+  onDecide?: (
+    findings: Array<Finding & { classification: FindingClassification }>,
+    round: number,
+  ) => Promise<Map<string, 'fix' | 'defer' | 'reject'>>;
   /** Milliseconds between CI status polls. Default 10_000. */
   ciPollIntervalMs?: number;
   /** Milliseconds between bot review polls. Default 30_000. */
@@ -70,6 +81,12 @@ export interface LoopOrchestratorOptions {
   roundIntervalMs?: number;
   /** Sleep implementation — swap out in tests for immediate resolution. */
   sleep?: (ms: number) => Promise<void>;
+  /**
+   * Called when the PR is approved with no open findings.
+   * Receives the current PR and its diff; return the new body string to update,
+   * or null/undefined to skip the update.
+   */
+  onPRApproved?: (pr: PullRequest, diff: PullRequestDiff) => Promise<string | null>;
   /**
    * Map of bot login → comment text to post in order to trigger that bot.
    * Used for bots like Codex that respond to @mention comments rather than
@@ -106,6 +123,11 @@ export class LoopOrchestrator {
   private readonly roundIntervalMs: number;
   private readonly sleep: (ms: number) => Promise<void>;
   private readonly botTriggerComments: Record<string, string>;
+  private readonly onDecide?: (
+    findings: Array<Finding & { classification: FindingClassification }>,
+    round: number,
+  ) => Promise<Map<string, 'fix' | 'defer' | 'reject'>>;
+  private readonly onPRApproved?: (pr: PullRequest, diff: PullRequestDiff) => Promise<string | null>;
 
   constructor(opts: LoopOrchestratorOptions) {
     this.platform = opts.platform;
@@ -122,6 +144,8 @@ export class LoopOrchestrator {
     this.roundIntervalMs = opts.roundIntervalMs ?? DEFAULT_ROUND_INTERVAL_MS;
     this.sleep = opts.sleep ?? defaultSleep;
     this.botTriggerComments = opts.botTriggerComments ?? {};
+    this.onDecide = opts.onDecide;
+    this.onPRApproved = opts.onPRApproved;
   }
 
   async run(options: LoopRunOptions): Promise<LoopResult> {
@@ -161,6 +185,17 @@ export class LoopOrchestrator {
         }
       } catch { /* non-fatal — proceed without pre-population */ }
 
+      // Pre-populate bots already satisfied/approved from prior runs or existing reviews.
+      const approvedBots = new Set<string>();
+      try {
+        const existingReviews = await this.platform.listReviews(prNumber);
+        for (const r of existingReviews) {
+          if (r.bot.isBot && (r.state === 'satisfied' || r.state === 'approved')) {
+            approvedBots.add(r.bot.login);
+          }
+        }
+      } catch { /* non-fatal */ }
+
       // ── Main convergence loop ──────────────────────────────────────────
       for (;;) {
         round++;
@@ -174,21 +209,36 @@ export class LoopOrchestrator {
 
         // ── Wait for bots ────────────────────────────────────────────────
         sm.transition('waiting_for_bot', { round });
-        const reviews = await this.waitForBotReviews(prNumber, botFilter);
+        let finalReviews = await this.waitForBotReviews(prNumber, botFilter);
 
-        if (!reviews) {
+        if (!finalReviews) {
           sm.transition('bot_timeout', { round });
-          // Re-request review from bots that haven't responded, then retry once
           await this.reRequestBotReviews(prNumber, botFilter, []);
-          const retried = await this.waitForBotReviews(prNumber, botFilter);
-          if (!retried) {
+          finalReviews = await this.waitForBotReviews(prNumber, botFilter);
+          if (!finalReviews) {
             sm.transition('stopped', { reason: 'bot_timeout' });
             return { finalState: 'stopped', rounds: round, reason: 'stopped' };
           }
-          sm.transition('racing', { round });
-        } else {
-          sm.transition('racing', { round });
         }
+        sm.transition('racing', { round });
+
+        // Track permanently satisfied/approved bots; emit status for visibility
+        for (const r of finalReviews) {
+          if (r.bot.isBot && (r.state === 'satisfied' || r.state === 'approved')) {
+            if (!approvedBots.has(r.bot.login)) {
+              approvedBots.add(r.bot.login);
+              this.emitter?.emit('bot.satisfied', { bot: r.bot.login, round, state: r.state });
+            }
+          }
+        }
+        this.emitter?.emit('round.bot_status', {
+          round,
+          bots: finalReviews.map((r) => ({
+            login: r.bot.login,
+            state: r.state,
+            satisfied: approvedBots.has(r.bot.login),
+          })),
+        });
 
         // ── Classify ─────────────────────────────────────────────────────
         sm.transition('classifying', { round });
@@ -200,9 +250,19 @@ export class LoopOrchestrator {
         // Only stop when approved AND there are no open bot threads left to resolve.
         // If threads are still open, continue the loop to classify and resolve them
         // even if a reviewer has already approved.
-        const currentReviews = reviews ?? [];
-        const approved = currentReviews.some((r) => r.state === 'approved' || r.state === 'satisfied');
+        const approved = finalReviews.some((r) => r.state === 'approved' || r.state === 'satisfied');
         if (approved && findings.length === 0) {
+          // Update PR body when approved — give AI a chance to write a proper description.
+          if (!dryRun && this.onPRApproved) {
+            try {
+              const diff = await this.platform.getPullRequestDiff(prNumber);
+              const newBody = await this.onPRApproved(pr, diff);
+              if (newBody) {
+                await this.platform.updatePullRequestBody(prNumber, newBody);
+                this.emitter?.emit('pr.body_updated', { prNumber, length: newBody.length });
+              }
+            } catch { /* non-fatal — approval takes precedence */ }
+          }
           sm.transition('stopped', { reason: 'approved', round });
           return { finalState: 'stopped', rounds: round, reason: 'approved' };
         }
@@ -221,6 +281,36 @@ export class LoopOrchestrator {
             return { ...f, classification: cls };
           }),
         );
+
+        // Build per-finding decisions: default from classification, then let caller override.
+        const decisions = new Map<string, 'fix' | 'defer' | 'reject'>();
+        for (const f of classified) {
+          const cat = f.classification?.category;
+          // unknown = cannot classify → attempt to fix; taste/yagni = defer; wrong = reject
+          const defaultAction: 'fix' | 'defer' | 'reject' =
+            cat === 'taste' || cat === 'yagni'
+              ? 'defer'
+              : cat === 'wrong'
+                ? 'reject'
+                : 'fix'; // bug + unknown both get fix by default
+          decisions.set(f.hash, defaultAction);
+        }
+        if (!dryRun && this.onDecide && classified.length > 0) {
+          try {
+            const userDecisions = await this.onDecide(
+              classified as Array<Finding & { classification: FindingClassification }>,
+              round,
+            );
+            for (const [hash, action] of userDecisions) decisions.set(hash, action);
+          } catch { /* non-fatal — fall back to defaults */ }
+        }
+        this.emitter?.emit('round.decisions', {
+          round,
+          total: classified.length,
+          fix: [...decisions.values()].filter((d) => d === 'fix').length,
+          defer: [...decisions.values()].filter((d) => d === 'defer').length,
+          reject: [...decisions.values()].filter((d) => d === 'reject').length,
+        });
 
         const dedupResult = await this.dedup.deduplicate(classified);
 
@@ -257,10 +347,20 @@ export class LoopOrchestrator {
         // ── Fix ──────────────────────────────────────────────────────────
         sm.transition('fixing', { round });
 
-        const actionable = dedupResult.unique.filter((f) => f.classification?.category === 'bug');
+        const actionable = dedupResult.unique.filter((f) => decisions.get(f.hash) === 'fix');
 
         if (!dryRun && actionable.length === 0) {
-          this.emitter?.emit('fix.skipped', { round, reason: 'no_actionable_bugs' });
+          const categories = dedupResult.unique.reduce<Record<string, number>>((acc, f) => {
+            const cat = f.classification?.category ?? 'unknown';
+            acc[cat] = (acc[cat] ?? 0) + 1;
+            return acc;
+          }, {});
+          this.emitter?.emit('fix.skipped', {
+            round,
+            reason: 'no_fix_decisions',
+            categories,
+            deferred: dedupResult.unique.filter((f) => decisions.get(f.hash) === 'defer').length,
+          });
         }
 
         const fixes = !dryRun && actionable.length > 0 ? await this.onFix(actionable, round) : [];
@@ -272,6 +372,7 @@ export class LoopOrchestrator {
         // ── Commit ───────────────────────────────────────────────────────
         sm.transition('commit_pushed', { round });
 
+        let commitSha = '';
         if (!dryRun && fixes.length > 0) {
           const throttle = new CommitThrottle(round);
           for (const fix of fixes) {
@@ -279,7 +380,7 @@ export class LoopOrchestrator {
           }
           const roundCommit = throttle.flush();
           budget.recordCommit();
-          await this.onCommit(roundCommit);
+          commitSha = await this.onCommit(roundCommit);
           this.emitter?.emit('round.committed', { round, fixCount: fixes.length, message: roundCommit.message });
         }
 
@@ -290,13 +391,42 @@ export class LoopOrchestrator {
         if (!dryRun && this.platform.capabilities.inlineReplies) {
           for (const finding of dedupResult.unique) {
             if (!finding.threadId) continue;
-            const reply = this.buildReplyBody(finding, fixes);
+            const decision = decisions.get(finding.hash) ?? 'defer';
+            const reply = this.buildReplyBody(finding, fixes, decision, commitSha);
             if (!reply) continue;
             const sanitized = this.secretScanner.scan(reply).redacted;
             await this.platform.replyInThread(finding.threadId, sanitized);
             repliedCount++;
             budget.recordReply(finding.threadId);
             this.emitter?.emit('thread.replied', { threadId: finding.threadId, category: finding.classification?.category });
+            // React to the bot's original comment to show acknowledgement
+            if (this.platform.capabilities.emojiReactions && finding.commentId) {
+              try {
+                const reaction = decision === 'fix' ? 'ROCKET' : 'EYES';
+                await this.platform.reactToReviewComment(finding.commentId, reaction);
+              } catch { /* non-fatal */ }
+            }
+          }
+
+          // Reply to deduplicated findings — point them to the canonical thread
+          for (const [dupHash, canonicalHash] of dedupResult.duplicates) {
+            const dupFinding = classified.find((f) => f.hash === dupHash);
+            if (!dupFinding?.threadId) continue;
+            const canonical = dedupResult.unique.find((f) => f.hash === canonicalHash);
+            const canonicalTitle = canonical?.title ? canonical.title.slice(0, 80) : '';
+            const dupReply = canonicalTitle
+              ? `已確認，此問題與「${canonicalTitle}」相同，已在對應討論串統一處理。`
+              : '已確認，此問題已在同批次其他討論串中統一處理。';
+            const sanitizedDup = this.secretScanner.scan(dupReply).redacted;
+            try {
+              await this.platform.replyInThread(dupFinding.threadId, sanitizedDup);
+              repliedCount++;
+              budget.recordReply(dupFinding.threadId);
+              this.emitter?.emit('thread.replied', { threadId: dupFinding.threadId, category: 'duplicate' });
+              if (this.platform.capabilities.emojiReactions && dupFinding.commentId) {
+                await this.platform.reactToReviewComment(dupFinding.commentId, 'EYES').catch(() => {});
+              }
+            } catch { /* non-fatal */ }
           }
         }
 
@@ -321,7 +451,11 @@ export class LoopOrchestrator {
           if (!hasOpenThreads) {
             // Filter to bots not yet re-requested this loop run
             const eligibleReviews = freshReviews.filter(
-              (r) => r.state !== 'approved' && r.state !== 'satisfied' && !requestedBots.has(r.bot.login),
+              (r) =>
+                r.state !== 'approved' &&
+                r.state !== 'satisfied' &&
+                !requestedBots.has(r.bot.login) &&
+                !approvedBots.has(r.bot.login),
             );
             if (eligibleReviews.length > 0) {
               await this.reRequestBotReviews(prNumber, botFilter, eligibleReviews);
@@ -491,36 +625,58 @@ export class LoopOrchestrator {
         title: extractTitle(body),
         body,
         threadId: thread.id,
+        commentId: firstComment.id,
       });
     }
 
     return findings;
   }
 
-  private buildReplyBody(finding: Finding, fixes: FixResult[]): string | null {
-    const category = finding.classification?.category;
-    if (category === 'duplicate') return null;
+  private buildReplyBody(
+    finding: Finding,
+    fixes: FixResult[],
+    decision: 'fix' | 'defer' | 'reject',
+    commitSha?: string,
+  ): string | null {
+    if (finding.classification?.category === 'duplicate') return null;
 
-    switch (category) {
-      case 'bug': {
-        const fix = fixes.find((f) => f.findingHash === finding.hash);
-        if (fix) return `已在本輪修復：${fix.description}`;
-        return '已收到，列入下一輪修復佇列。';
+    const title = finding.title?.trim() ? `「${finding.title.slice(0, 100)}」` : '此問題';
+    const locPart = finding.location.file
+      ? ` (\`${finding.location.file}${finding.location.startLine ? `:${finding.location.startLine}` : ''}\`)`
+      : '';
+
+    if (decision === 'reject') {
+      const reasoning = finding.classification?.reasoning;
+      return reasoning
+        ? `感謝指出 ${title}${locPart}，評估後決定不採納：${reasoning}`
+        : `感謝指出 ${title}${locPart}，評估後認為目前實作符合預期，不做修改。`;
+    }
+
+    if (decision === 'defer') {
+      const cat = finding.classification?.category;
+      if (cat === 'taste') {
+        return `${title}${locPart} 屬於風格偏好，已記錄，將遵循團隊慣例統一處理。`;
       }
-      case 'wrong': {
+      if (cat === 'yagni') {
+        return `${title}${locPart} 問題有效，但超出本次 PR 範圍，已記錄為後續追蹤項目。`;
+      }
+      if (cat === 'wrong') {
         const reasoning = finding.classification?.reasoning;
         return reasoning
-          ? `感謝指出，但評估後認為此問題不適用於目前實作：${reasoning}`
-          : '感謝指出，但評估後認為此問題不適用於目前實作。';
+          ? `感謝指出 ${title}${locPart}，評估後認為此問題不適用於目前實作：${reasoning}`
+          : `感謝指出 ${title}${locPart}，評估後認為此問題不適用於目前實作。`;
       }
-      case 'taste':
-        return '已記錄，這屬於風格偏好，將遵循團隊慣例處理。';
-      case 'yagni':
-        return '問題有效，但超出本次 PR 範圍，已記錄為後續追蹤項目。';
-      case 'unknown':
-      default:
-        return '已收到此評論，正在評估處理方式。';
+      return `${title}${locPart} 已記錄為後續追蹤項目，本次 PR 範圍內暫不處理。`;
     }
+
+    // decision === 'fix'
+    const fix = fixes.find((f) => f.findingHash === finding.hash);
+    if (fix) {
+      const shaNote = commitSha ? ` (${commitSha.slice(0, 7)})` : '';
+      const filesNote = fix.files?.length ? `，涉及：${fix.files.join(', ')}` : '';
+      return `✅ ${title}${locPart} 已在本輪修復${shaNote}：${fix.description}${filesNote}`;
+    }
+    return `已確認 ${title}${locPart}，已排入本輪修復佇列；若 AI 本輪未能自動修復，將在下一輪繼續處理。`;
   }
 }
 

@@ -109,6 +109,14 @@ const GET_VIEWER_QUERY = `
   }
 `;
 
+const ADD_REACTION_MUTATION = `
+  mutation AddReaction($subjectId: ID!, $content: ReactionContent!) {
+    addReaction(input: { subjectId: $subjectId, content: $content }) {
+      reaction { content }
+    }
+  }
+`;
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function resolveToken(config: GitPlatformConfig): string {
@@ -142,6 +150,7 @@ export class GitHubPlatform extends GitPlatform {
     requestReviewers: true,
     ciStatus: true,
     graphql: true,
+    emojiReactions: true,
   };
 
   private _owner?: string;
@@ -267,6 +276,21 @@ export class GitHubPlatform extends GitPlatform {
     });
   }
 
+  async listPRComments(prNumber: number): Promise<Array<{ login: string; isBot: boolean; body: string }>> {
+    const { owner, repo } = await this.ownerRepo();
+    const { data } = await this.octokit.rest.issues.listComments({
+      owner,
+      repo,
+      issue_number: prNumber,
+      per_page: 100,
+    });
+    return data.map((c) => ({
+      login: c.user?.login ?? 'ghost',
+      isBot: c.user?.type === 'Bot',
+      body: c.body ?? '',
+    }));
+  }
+
   // ─── Reviews & threads ───────────────────────────────────────────────────
 
   async listReviews(prNumber: number, since?: Date): Promise<BotReview[]> {
@@ -356,11 +380,29 @@ export class GitHubPlatform extends GitPlatform {
   }
 
   async replyInThread(threadId: string, body: string): Promise<void> {
-    await this.gql(REPLY_IN_THREAD_MUTATION, { threadId, body });
+    const result = await this.gql<{
+      addPullRequestReviewThreadReply: { comment: { id: string } } | null;
+    }>(REPLY_IN_THREAD_MUTATION, { threadId, body });
+    if (!result.addPullRequestReviewThreadReply) {
+      throw new Error(
+        `replyInThread returned null for thread ${threadId} — token may lack write access to this repo`,
+      );
+    }
   }
 
   async resolveReviewThread(threadId: string): Promise<void> {
-    await this.gql(RESOLVE_THREAD_MUTATION, { threadId });
+    const result = await this.gql<{
+      resolveReviewThread: { thread: { id: string; isResolved: boolean } } | null;
+    }>(RESOLVE_THREAD_MUTATION, { threadId });
+    if (!result.resolveReviewThread) {
+      throw new Error(
+        `resolveReviewThread returned null for thread ${threadId} — token may lack write access to this repo`,
+      );
+    }
+  }
+
+  override async reactToReviewComment(commentNodeId: string, reaction: string): Promise<void> {
+    await this.gql(ADD_REACTION_MUTATION, { subjectId: commentNodeId, content: reaction });
   }
 
   // ─── CI ──────────────────────────────────────────────────────────────────

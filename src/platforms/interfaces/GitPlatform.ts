@@ -41,6 +41,8 @@ export interface PlatformCapabilities {
   ciStatus: boolean;
   /** Are GraphQL mutations available (faster bulk operations)? */
   graphql: boolean;
+  /** Can we add emoji reactions to review thread comments? */
+  emojiReactions?: boolean;
 }
 
 /** Output of a rate-limit query — used by the orchestrator's backoff. */
@@ -81,6 +83,8 @@ export abstract class GitPlatform {
   abstract requestReviewers(prNumber: number, reviewers: string[]): Promise<void>;
   /** Post a top-level PR issue comment (used to trigger bots via @mention). */
   abstract createPRComment(prNumber: number, body: string): Promise<void>;
+  /** List top-level PR issue comments (not review thread comments). */
+  abstract listPRComments(prNumber: number): Promise<Array<{ login: string; isBot: boolean; body: string }>>;
 
   // ─── Reviews & threads (orchestrator core) ────────────────────────────
   /**
@@ -113,4 +117,14 @@ export abstract class GitPlatform {
 
   // ─── Rate limits ───────────────────────────────────────────────────────
   abstract getRateLimitInfo(): Promise<RateLimitInfo>;
+
+  // ─── Reactions ─────────────────────────────────────────────────────────
+  /**
+   * Add an emoji reaction to a review thread comment.
+   * Default no-op — platforms that support this should override.
+   * @param commentNodeId - Platform-native node ID of the comment
+   * @param reaction - Reaction content (e.g. 'EYES', 'THUMBS_UP', 'ROCKET')
+   */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async reactToReviewComment(_commentNodeId: string, _reaction: string): Promise<void> {}
 }
