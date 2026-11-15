@@ -233,7 +233,7 @@ stopConditions:
 
 ## 授權
 
-待定——在公開發布前將採用 MIT 或 Apache-2.0 授權。
+MIT — 詳見 [LICENSE](./LICENSE)。
 
 ## 致謝
 

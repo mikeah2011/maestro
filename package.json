@@ -23,7 +23,7 @@
     "url": "https://github.com/mikeah2011/maestro.git"
   },
   "bugs": "https://github.com/mikeah2011/maestro/issues",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "type": "module",
   "bin": {
     "maestro": "./dist/cli.js"
