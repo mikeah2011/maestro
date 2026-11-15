@@ -1,7 +1,7 @@
 # Language Plugins 設定
 
-<cite>
 **本文引用的檔案**
+
 - [README.md](https://github.com/mikeah2011/maestro/blob/master/README.md)
 - [DESIGN.md](https://github.com/mikeah2011/maestro/blob/master/docs/DESIGN.md)
 - [.maestro.example.yaml](https://github.com/mikeah2011/maestro/blob/master/.maestro.example.yaml)
@@ -13,7 +13,6 @@
 - [loop.ts](https://github.com/mikeah2011/maestro/blob/master/src/cli/commands/loop.ts)
 - [LoadConfig 測試](https://github.com/mikeah2011/maestro/blob/master/tests/config/load.test.ts)
 - [EnvExpansion 測試](https://github.com/mikeah2011/maestro/blob/master/tests/config/expand.test.ts)
-</cite>
 
 ## 目錄
 

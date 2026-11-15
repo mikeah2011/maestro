@@ -1,10 +1,9 @@
 # 輪次預算（RoundBudget）
 
-<cite>
-**本文引用的檔案**   
+**本文引用的檔案**
+
 - [RoundBudget.ts](https://github.com/mikeah2011/maestro/blob/master/src/core/round/RoundBudget.ts)
 - [RoundBudget.test.ts](https://github.com/mikeah2011/maestro/blob/master/tests/core/round/RoundBudget.test.ts)
-</cite>
 
 ## 目錄
 1. [簡介](#簡介)

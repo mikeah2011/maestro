@@ -1,13 +1,12 @@
 # Google Gemini Provider
 
-<cite>
 **本文引用的檔案**
+
 - [.maestro.example.yaml](https://github.com/mikeah2011/maestro/blob/master/.maestro.example.yaml)
 - [src/config/schema.ts](https://github.com/mikeah2011/maestro/blob/master/src/config/schema.ts)
 - [src/ai/interfaces/AIProvider.ts](https://github.com/mikeah2011/maestro/blob/master/src/ai/interfaces/AIProvider.ts)
 - [env.template](https://github.com/mikeah2011/maestro/blob/master/.env.template)
 - [README.md](https://github.com/mikeah2011/maestro/blob/master/README.md)
-</cite>
 
 ## 目錄
 1. [簡介](#簡介)

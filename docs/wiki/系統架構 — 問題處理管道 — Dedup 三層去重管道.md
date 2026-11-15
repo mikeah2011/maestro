@@ -1,10 +1,9 @@
 # Dedup 三層去重管道
 
-<cite>
-**本文引用的檔案**   
+**本文引用的檔案**
+
 - [src/core/dedup/Dedup.ts](https://github.com/mikeah2011/maestro/blob/master/src/core/dedup/Dedup.ts)
 - [tests/core/dedup/Dedup.test.ts](https://github.com/mikeah2011/maestro/blob/master/tests/core/dedup/Dedup.test.ts)
-</cite>
 
 ## 目錄
 

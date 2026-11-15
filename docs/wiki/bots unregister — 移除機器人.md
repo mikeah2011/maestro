@@ -1,13 +1,12 @@
 # bots unregister — 移除機器人
 
-<cite>
-**本文引用的檔案**   
+**本文引用的檔案**
+
 - [src/cli/commands/bots.ts](https://github.com/mikeah2011/maestro/blob/master/src/cli/commands/bots.ts)
 - [src/config/schema.ts](https://github.com/mikeah2011/maestro/blob/master/src/config/schema.ts)
 - [src/config/load.ts](https://github.com/mikeah2011/maestro/blob/master/src/config/load.ts)
 - [README.md](https://github.com/mikeah2011/maestro/blob/master/README.md)
 - [docs/DESIGN.md](https://github.com/mikeah2011/maestro/blob/master/docs/DESIGN.md)
-</cite>
 
 ## 目錄
 1. [簡介](#簡介)

@@ -1,7 +1,7 @@
 # CLI 命令參考
 
-<cite>
 **本文引用的檔案**
+
 - [src/cli/index.ts](https://github.com/mikeah2011/maestro/blob/master/src/cli/index.ts)
 - [src/cli/commands/init.ts](https://github.com/mikeah2011/maestro/blob/master/src/cli/commands/init.ts)
 - [src/cli/commands/doctor.ts](https://github.com/mikeah2011/maestro/blob/master/src/cli/commands/doctor.ts)
@@ -10,7 +10,6 @@
 - [src/cli/commands/bots.ts](https://github.com/mikeah2011/maestro/blob/master/src/cli/commands/bots.ts)
 - [package.json](https://github.com/mikeah2011/maestro/blob/master/package.json)
 - [README.md](https://github.com/mikeah2011/maestro/blob/master/README.md)
-</cite>
 
 ## 目錄
 1. [簡介](#簡介)

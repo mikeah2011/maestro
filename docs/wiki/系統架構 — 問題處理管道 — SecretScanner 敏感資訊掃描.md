@@ -1,14 +1,13 @@
 # SecretScanner 敏感資訊掃描
 
-<cite>
-**本文引用的檔案**   
+**本文引用的檔案**
+
 - [SecretScanner.ts](https://github.com/mikeah2011/maestro/blob/master/src/core/security/SecretScanner.ts)
 - [SecretScanner.test.ts](https://github.com/mikeah2011/maestro/blob/master/tests/core/security/SecretScanner.test.ts)
 - [DESIGN.md](https://github.com/mikeah2011/maestro/blob/master/docs/DESIGN.md)
 - [README.md](https://github.com/mikeah2011/maestro/blob/master/README.md)
 - [FixEngine.ts](https://github.com/mikeah2011/maestro/blob/master/src/core/fix/FixEngine.ts)
 - [GitHubPlatform.ts](https://github.com/mikeah2011/maestro/blob/master/src/platforms/github/GitHubPlatform.ts)
-</cite>
 
 ## 目錄
 1. [引言](#引言)

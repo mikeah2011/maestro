@@ -1,12 +1,11 @@
 # 狀態機（StateMachine）
 
-<cite>
-**本文引用的檔案**   
+**本文引用的檔案**
+
 - [src/core/state/StateMachine.ts](https://github.com/mikeah2011/maestro/blob/master/src/core/state/StateMachine.ts)
 - [tests/core/state/StateMachine.test.ts](https://github.com/mikeah2011/maestro/blob/master/tests/core/state/StateMachine.test.ts)
 - [src/core/loop/LoopOrchestrator.ts](https://github.com/mikeah2011/maestro/blob/master/src/core/loop/LoopOrchestrator.ts)
 - [src/core/events/EventEmitter.ts](https://github.com/mikeah2011/maestro/blob/master/src/core/events/EventEmitter.ts)
-</cite>
 
 ## 目錄
 1. [簡介](#簡介)

@@ -1,10 +1,9 @@
 # StateMachine 狀態機
 
-<cite>
-**本文引用的文件**   
+**本文引用的文件**
+
 - [StateMachine.ts](https://github.com/mikeah2011/maestro/blob/master/src/core/state/StateMachine.ts)
 - [StateMachine.test.ts](https://github.com/mikeah2011/maestro/blob/master/tests/core/state/StateMachine.test.ts)
-</cite>
 
 ## 目錄
 

@@ -1,13 +1,12 @@
 # bots register — 註冊機器人
 
-<cite>
-**本文引用的檔案**   
+**本文引用的檔案**
+
 - [bots.ts](https://github.com/mikeah2011/maestro/blob/master/src/cli/commands/bots.ts)
 - [schema.ts](https://github.com/mikeah2011/maestro/blob/master/src/config/schema.ts)
 - [load.ts](https://github.com/mikeah2011/maestro/blob/master/src/config/load.ts)
 - [.maestro.example.yaml](https://github.com/mikeah2011/maestro/blob/master/.maestro.example.yaml)
 - [README.md](https://github.com/mikeah2011/maestro/blob/master/README.md)
-</cite>
 
 ## 目錄
 1. [說明摘要](#說明摘要)

@@ -1,7 +1,7 @@
 # MCP Server 整合
 
-<cite>
-**本文引用的檔案**   
+**本文引用的檔案**
+
 - [README.md](https://github.com/mikeah2011/maestro/blob/master/README.md)
 - [package.json](https://github.com/mikeah2011/maestro/blob/master/package.json)
 - [CLAUDE.md](https://github.com/mikeah2011/maestro/blob/master/CLAUDE.md)
@@ -14,7 +14,6 @@
 - [src/core/state/StateMachine.ts](https://github.com/mikeah2011/maestro/blob/master/src/core/state/StateMachine.ts)
 - [src/config/load.ts](https://github.com/mikeah2011/maestro/blob/master/src/config/load.ts)
 - [src/config/schema.ts](https://github.com/mikeah2011/maestro/blob/master/src/config/schema.ts)
-</cite>
 
 ## 目錄
 

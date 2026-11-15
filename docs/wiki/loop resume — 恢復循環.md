@@ -1,13 +1,12 @@
 # 循環恢復 — `maestro loop resume`
 
-<cite>
-**本文引用的檔案**   
+**本文引用的檔案**
+
 - [src/cli/commands/loop.ts](https://github.com/mikeah2011/maestro/blob/master/src/cli/commands/loop.ts)
 - [src/core/loop/LoopOrchestrator.ts](https://github.com/mikeah2011/maestro/blob/master/src/core/loop/LoopOrchestrator.ts)
 - [src/core/state/StateMachine.ts](https://github.com/mikeah2011/maestro/blob/master/src/core/state/StateMachine.ts)
 - [tests/core/loop/LoopOrchestrator.test.ts](https://github.com/mikeah2011/maestro/blob/master/tests/core/loop/LoopOrchestrator.test.ts)
 - [README.md](https://github.com/mikeah2011/maestro/blob/master/README.md)
-</cite>
 
 ## 目錄
 

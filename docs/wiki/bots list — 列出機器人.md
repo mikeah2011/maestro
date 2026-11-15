@@ -1,12 +1,11 @@
 # `bots list` — 列出機器人
 
-<cite>
 **本文引用的檔案**
+
 - [src/cli/commands/bots.ts](https://github.com/mikeah2011/maestro/blob/master/src/cli/commands/bots.ts)
 - [src/config/schema.ts](https://github.com/mikeah2011/maestro/blob/master/src/config/schema.ts)
 - [.maestro.example.yaml](https://github.com/mikeah2011/maestro/blob/master/.maestro.example.yaml)
 - [README.md](https://github.com/mikeah2011/maestro/blob/master/README.md)
-</cite>
 
 ## 目錄
 1. [功能摘要](#功能摘要)

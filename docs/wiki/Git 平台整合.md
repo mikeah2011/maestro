@@ -1,13 +1,12 @@
 # Git 平台整合
 
-<cite>
 **本文引用的檔案**
+
 - [GitPlatform.ts](https://github.com/mikeah2011/maestro/blob/master/src/platforms/interfaces/GitPlatform.ts)
 - [GitHubPlatform.ts](https://github.com/mikeah2011/maestro/blob/master/src/platforms/github/GitHubPlatform.ts)
 - [mappers.ts](https://github.com/mikeah2011/maestro/blob/master/src/platforms/github/mappers.ts)
 - [GitHubPlatform.test.ts](https://github.com/mikeah2011/maestro/blob/master/tests/platforms/github/GitHubPlatform.test.ts)
 - [mappers.test.ts](https://github.com/mikeah2011/maestro/blob/master/tests/platforms/github/mappers.test.ts)
-</cite>
 
 ## 目錄
 1. [引言](#引言)

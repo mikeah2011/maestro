@@ -1,7 +1,7 @@
 # loop start — 啟動循環
 
-<cite>
-**本文引用的檔案**   
+**本文引用的檔案**
+
 - [README.md](https://github.com/mikeah2011/maestro/blob/master/README.md)
 - [package.json](https://github.com/mikeah2011/maestro/blob/master/package.json)
 - [.maestro.example.yaml](https://github.com/mikeah2011/maestro/blob/master/.maestro.example.yaml)
@@ -11,7 +11,6 @@
 - [src/config/load.ts](https://github.com/mikeah2011/maestro/blob/master/src/config/load.ts)
 - [src/config/schema.ts](https://github.com/mikeah2011/maestro/blob/master/src/config/schema.ts)
 - [docs/DESIGN.md](https://github.com/mikeah2011/maestro/blob/master/docs/DESIGN.md)
-</cite>
 
 ## 目錄
 1. [簡介](#簡介)

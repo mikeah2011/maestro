@@ -1,7 +1,7 @@
 # Claude Code Skill 整合
 
-<cite>
-**本文引用的檔案**   
+**本文引用的檔案**
+
 - [EventEmitter.ts](https://github.com/mikeah2011/maestro/blob/master/src/core/events/EventEmitter.ts)
 - [ClaudeCodeProvider.ts](https://github.com/mikeah2011/maestro/blob/master/src/ai/providers/ClaudeCodeProvider.ts)
 - [loop.ts](https://github.com/mikeah2011/maestro/blob/master/src/cli/commands/loop.ts)
@@ -13,7 +13,6 @@
 - [README.md](https://github.com/mikeah2011/maestro/blob/master/README.md)
 - [EventEmitter.test.ts](https://github.com/mikeah2011/maestro/blob/master/tests/core/events/EventEmitter.test.ts)
 - [ClaudeCodeProvider.test.ts](https://github.com/mikeah2011/maestro/blob/master/tests/ai/providers/ClaudeCodeProvider.test.ts)
-</cite>
 
 ## 目錄
 1. [引言](#引言)

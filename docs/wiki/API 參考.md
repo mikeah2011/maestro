@@ -1,7 +1,7 @@
 # API 參考
 
-<cite>
-**本文引用的檔案**   
+**本文引用的檔案**
+
 - [src/index.ts](https://github.com/mikeah2011/maestro/blob/master/src/index.ts)
 - [src/platforms/interfaces/GitPlatform.ts](https://github.com/mikeah2011/maestro/blob/master/src/platforms/interfaces/GitPlatform.ts)
 - [src/ai/interfaces/AIProvider.ts](https://github.com/mikeah2011/maestro/blob/master/src/ai/interfaces/AIProvider.ts)
@@ -23,7 +23,6 @@
 - [src/core/fix/FixEngine.ts](https://github.com/mikeah2011/maestro/blob/master/src/core/fix/FixEngine.ts)
 - [package.json](https://github.com/mikeah2011/maestro/blob/master/package.json)
 - [README.md](https://github.com/mikeah2011/maestro/blob/master/README.md)
-</cite>
 
 ## 目錄
 

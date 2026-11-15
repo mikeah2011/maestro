@@ -1,7 +1,7 @@
 # FixEngine 修復引擎
 
-<cite>
 **本文引用的檔案**
+
 - [FixEngine.ts](https://github.com/mikeah2011/maestro/blob/master/src/core/fix/FixEngine.ts)
 - [Finding.ts](https://github.com/mikeah2011/maestro/blob/master/src/core/types/Finding.ts)
 - [LoopOrchestrator.ts](https://github.com/mikeah2011/maestro/blob/master/src/core/loop/LoopOrchestrator.ts)
@@ -9,7 +9,6 @@
 - [DESIGN.md](https://github.com/mikeah2011/maestro/blob/master/docs/DESIGN.md)
 - [README.md](https://github.com/mikeah2011/maestro/blob/master/README.md)
 - [FixEngine.test.ts](https://github.com/mikeah2011/maestro/blob/master/tests/core/fix/FixEngine.test.ts)
-</cite>
 
 ## 目錄
 1. [簡介](#簡介)

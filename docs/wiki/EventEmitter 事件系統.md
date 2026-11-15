@@ -1,7 +1,7 @@
 # EventEmitter 事件系統
 
-<cite>
-**本文引用的檔案**   
+**本文引用的檔案**
+
 - [EventEmitter.ts](https://github.com/mikeah2011/maestro/blob/master/src/core/events/EventEmitter.ts)
 - [EventEmitter.test.ts](https://github.com/mikeah2011/maestro/blob/master/tests/core/events/EventEmitter.test.ts)
 - [loop.ts](https://github.com/mikeah2011/maestro/blob/master/src/cli/commands/loop.ts)
@@ -11,7 +11,6 @@
 - [Finding.ts](https://github.com/mikeah2011/maestro/blob/master/src/core/types/Finding.ts)
 - [DESIGN.md](https://github.com/mikeah2011/maestro/blob/master/docs/DESIGN.md)
 - [CLAUDE.md](https://github.com/mikeah2011/maestro/blob/master/CLAUDE.md)
-</cite>
 
 ## 目錄
 1. [簡介](#簡介)

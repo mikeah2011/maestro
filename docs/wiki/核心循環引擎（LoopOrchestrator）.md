@@ -1,7 +1,7 @@
 # 核心循環引擎（LoopOrchestrator）
 
-<cite>
-**本文引用的檔案**   
+**本文引用的檔案**
+
 - [LoopOrchestrator.ts](https://github.com/mikeah2011/maestro/blob/master/src/core/loop/LoopOrchestrator.ts)
 - [StateMachine.ts](https://github.com/mikeah2011/maestro/blob/master/src/core/state/StateMachine.ts)
 - [EventEmitter.ts](https://github.com/mikeah2011/maestro/blob/master/src/core/events/EventEmitter.ts)
@@ -14,7 +14,6 @@
 - [FixEngine.ts](https://github.com/mikeah2011/maestro/blob/master/src/core/fix/FixEngine.ts)
 - [GitPlatform.ts](https://github.com/mikeah2011/maestro/blob/master/src/platforms/interfaces/GitPlatform.ts)
 - [loop.ts](https://github.com/mikeah2011/maestro/blob/master/src/cli/commands/loop.ts)
-</cite>
 
 ## 目錄
 1. [引言](#引言)

@@ -1,14 +1,13 @@
 # maestro bots — 機器人管理
 
-<cite>
 **本文引用的檔案**
+
 - [bots.ts](https://github.com/mikeah2011/maestro/blob/master/src/cli/commands/bots.ts)
 - [schema.ts](https://github.com/mikeah2011/maestro/blob/master/src/config/schema.ts)
 - [Finding.ts](https://github.com/mikeah2011/maestro/blob/master/src/core/types/Finding.ts)
 - [LoopOrchestrator.ts](https://github.com/mikeah2011/maestro/blob/master/src/core/loop/LoopOrchestrator.ts)
 - [README.md](https://github.com/mikeah2011/maestro/blob/master/README.md)
 - [DESIGN.md](https://github.com/mikeah2011/maestro/blob/master/docs/DESIGN.md)
-</cite>
 
 ## 目錄
 1. [簡介](#簡介)

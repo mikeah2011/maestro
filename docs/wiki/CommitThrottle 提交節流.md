@@ -1,7 +1,7 @@
 # CommitThrottle 提交節流
 
-<cite>
-**本文引用的檔案**   
+**本文引用的檔案**
+
 - [CommitThrottle.ts](https://github.com/mikeah2011/maestro/blob/master/src/core/round/CommitThrottle.ts)
 - [CommitThrottle.test.ts](https://github.com/mikeah2011/maestro/blob/master/tests/core/round/CommitThrottle.test.ts)
 - [LoopOrchestrator.ts](https://github.com/mikeah2011/maestro/blob/master/src/core/loop/LoopOrchestrator.ts)
@@ -11,7 +11,6 @@
 - [GitPlatform.ts](https://github.com/mikeah2011/maestro/blob/master/src/platforms/interfaces/GitPlatform.ts)
 - [GitHubPlatform.ts](https://github.com/mikeah2011/maestro/blob/master/src/platforms/github/GitHubPlatform.ts)
 - [package.json](https://github.com/mikeah2011/maestro/blob/master/package.json)
-</cite>
 
 ## 目錄
 

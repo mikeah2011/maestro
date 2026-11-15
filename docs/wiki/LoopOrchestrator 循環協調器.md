@@ -1,7 +1,7 @@
 # LoopOrchestrator 循環協調器
 
-<cite>
-**本文引用的檔案**   
+**本文引用的檔案**
+
 - [LoopOrchestrator.ts](https://github.com/mikeah2011/maestro/blob/master/src/core/loop/LoopOrchestrator.ts)
 - [LoopOrchestrator.test.ts](https://github.com/mikeah2011/maestro/blob/master/tests/core/loop/LoopOrchestrator.test.ts)
 - [loop.ts](https://github.com/mikeah2011/maestro/blob/master/src/cli/commands/loop.ts)
@@ -16,7 +16,6 @@
 - [FixEngine.ts](https://github.com/mikeah2011/maestro/blob/master/src/core/fix/FixEngine.ts)
 - [GitPlatform.ts](https://github.com/mikeah2011/maestro/blob/master/src/platforms/interfaces/GitPlatform.ts)
 - [README.md](https://github.com/mikeah2011/maestro/blob/master/README.md)
-</cite>
 
 ## 目錄
 

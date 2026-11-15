@@ -1,7 +1,7 @@
 # GitHub Action 使用
 
-<cite>
-**本文引用的檔案**   
+**本文引用的檔案**
+
 - [README.md](https://github.com/mikeah2011/maestro/blob/master/README.md)
 - [.github/workflows/maestro-auto-approve.yml](https://github.com/mikeah2011/maestro/blob/master/.github/workflows/maestro-auto-approve.yml)
 - [package.json](https://github.com/mikeah2011/maestro/blob/master/package.json)
@@ -12,7 +12,6 @@
 - [src/core/types/CI.ts](https://github.com/mikeah2011/maestro/blob/master/src/core/types/CI.ts)
 - [src/platforms/github/GitHubPlatform.ts](https://github.com/mikeah2011/maestro/blob/master/src/platforms/github/GitHubPlatform.ts)
 - [docs/DESIGN.md](https://github.com/mikeah2011/maestro/blob/master/docs/DESIGN.md)
-</cite>
 
 ## 目錄
 1. [簡介](#簡介)

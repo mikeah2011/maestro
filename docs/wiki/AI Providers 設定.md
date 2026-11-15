@@ -1,7 +1,7 @@
 # AI Providers 設定
 
-<cite>
-**本文引用的檔案**   
+**本文引用的檔案**
+
 - [.maestro.example.yaml](https://github.com/mikeah2011/maestro/blob/master/.maestro.example.yaml)
 - [AIProvider.ts](https://github.com/mikeah2011/maestro/blob/master/src/ai/interfaces/AIProvider.ts)
 - [ClaudeProvider.ts](https://github.com/mikeah2011/maestro/blob/master/src/ai/providers/ClaudeProvider.ts)
@@ -14,7 +14,6 @@
 - [ClaudeCodeProvider.test.ts](https://github.com/mikeah2011/maestro/blob/master/tests/ai/providers/ClaudeCodeProvider.test.ts)
 - [load.test.ts](https://github.com/mikeah2011/maestro/blob/master/tests/config/load.test.ts)
 - [README.md](https://github.com/mikeah2011/maestro/blob/master/README.md)
-</cite>
 
 ## 目錄
 

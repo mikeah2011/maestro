@@ -1,7 +1,7 @@
 # OpenAI Provider
 
-<cite>
-**本文引用的檔案**   
+**本文引用的檔案**
+
 - [.maestro.example.yaml](https://github.com/mikeah2011/maestro/blob/master/.maestro.example.yaml)
 - [README.md](https://github.com/mikeah2011/maestro/blob/master/README.md)
 - [src/ai/interfaces/AIProvider.ts](https://github.com/mikeah2011/maestro/blob/master/src/ai/interfaces/AIProvider.ts)
@@ -9,7 +9,6 @@
 - [src/config/load.ts](https://github.com/mikeah2011/maestro/blob/master/src/config/load.ts)
 - [src/config/expand.ts](https://github.com/mikeah2011/maestro/blob/master/src/config/expand.ts)
 - [src/core/dedup/Dedup.ts](https://github.com/mikeah2011/maestro/blob/master/src/core/dedup/Dedup.ts)
-</cite>
 
 ## 目錄
 1. [簡介](#簡介)

@@ -1,7 +1,7 @@
 # Bots Registry 設定
 
-<cite>
 **本文引用的檔案**
+
 - [bots.ts](https://github.com/mikeah2011/maestro/blob/master/src/cli/commands/bots.ts)
 - [schema.ts](https://github.com/mikeah2011/maestro/blob/master/src/config/schema.ts)
 - [index.ts](https://github.com/mikeah2011/maestro/blob/master/src/cli/index.ts)
@@ -10,7 +10,6 @@
 - [GitPlatform.ts](https://github.com/mikeah2011/maestro/blob/master/src/platforms/interfaces/GitPlatform.ts)
 - [GitHubPlatform.ts](https://github.com/mikeah2011/maestro/blob/master/src/platforms/github/GitHubPlatform.ts)
 - [.maestro.example.yaml](https://github.com/mikeah2011/maestro/blob/master/.maestro.example.yaml)
-</cite>
 
 ## 目錄
 1. [簡介](#簡介)

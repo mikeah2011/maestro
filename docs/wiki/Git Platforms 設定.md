@@ -1,7 +1,7 @@
 # Git Platforms 設定
 
-<cite>
 **本文引用的檔案**
+
 - [README.md](https://github.com/mikeah2011/maestro/blob/master/README.md)
 - [.maestro.example.yaml](https://github.com/mikeah2011/maestro/blob/master/.maestro.example.yaml)
 - [src/platforms/interfaces/GitPlatform.ts](https://github.com/mikeah2011/maestro/blob/master/src/platforms/interfaces/GitPlatform.ts)
@@ -11,7 +11,6 @@
 - [src/config/expand.ts](https://github.com/mikeah2011/maestro/blob/master/src/config/expand.ts)
 - [src/cli/commands/init.ts](https://github.com/mikeah2011/maestro/blob/master/src/cli/commands/init.ts)
 - [src/cli/commands/doctor.ts](https://github.com/mikeah2011/maestro/blob/master/src/cli/commands/doctor.ts)
-</cite>
 
 ## 目錄
 1. [簡介](#簡介)

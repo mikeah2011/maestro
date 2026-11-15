@@ -1,7 +1,7 @@
 # ClaudeCodeProvider（claude CLI）
 
-<cite>
 **本文引用的檔案**
+
 - [ClaudeCodeProvider.ts](https://github.com/mikeah2011/maestro/blob/master/src/ai/providers/ClaudeCodeProvider.ts)
 - [ClaudeProvider.ts](https://github.com/mikeah2011/maestro/blob/master/src/ai/providers/ClaudeProvider.ts)
 - [AIProvider.ts](https://github.com/mikeah2011/maestro/blob/master/src/ai/interfaces/AIProvider.ts)
@@ -10,7 +10,6 @@
 - [package.json](https://github.com/mikeah2011/maestro/blob/master/package.json)
 - [CLAUDE.md](https://github.com/mikeah2011/maestro/blob/master/CLAUDE.md)
 - [README.md](https://github.com/mikeah2011/maestro/blob/master/README.md)
-</cite>
 
 ## 目錄
 1. [簡介](#簡介)

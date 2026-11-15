@@ -1,7 +1,7 @@
 # Security 設定
 
-<cite>
 **本文引用的檔案**
+
 - [SecretScanner.ts](https://github.com/mikeah2011/maestro/blob/master/src/core/security/SecretScanner.ts)
 - [SecretScanner.test.ts](https://github.com/mikeah2011/maestro/blob/master/tests/core/security/SecretScanner.test.ts)
 - [schema.ts](https://github.com/mikeah2011/maestro/blob/master/src/config/schema.ts)
@@ -9,7 +9,6 @@
 - [audit.ts](https://github.com/mikeah2011/maestro/blob/master/src/cli/commands/audit.ts)
 - [Finding.ts](https://github.com/mikeah2011/maestro/blob/master/src/core/types/Finding.ts)
 - [README.md](https://github.com/mikeah2011/maestro/blob/master/README.md)
-</cite>
 
 ## 目錄
 1. [簡介](#簡介)

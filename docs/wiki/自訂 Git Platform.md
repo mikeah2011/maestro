@@ -1,7 +1,7 @@
 # 自訂 Git Platform
 
-<cite>
-**本文引用的檔案**   
+**本文引用的檔案**
+
 - [GitPlatform.ts](https://github.com/mikeah2011/maestro/blob/master/src/platforms/interfaces/GitPlatform.ts)
 - [GitHubPlatform.ts](https://github.com/mikeah2011/maestro/blob/master/src/platforms/github/GitHubPlatform.ts)
 - [mappers.ts](https://github.com/mikeah2011/maestro/blob/master/src/platforms/github/mappers.ts)
@@ -10,7 +10,6 @@
 - [CI.ts](https://github.com/mikeah2011/maestro/blob/master/src/core/types/CI.ts)
 - [README.md](https://github.com/mikeah2011/maestro/blob/master/README.md)
 - [GitHubPlatform.test.ts](https://github.com/mikeah2011/maestro/blob/master/tests/platforms/github/GitHubPlatform.test.ts)
-</cite>
 
 ## 目錄
 

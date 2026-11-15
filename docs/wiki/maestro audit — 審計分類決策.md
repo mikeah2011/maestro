@@ -1,7 +1,7 @@
 # maestro audit — 審計分類決策
 
-<cite>
 **本文引用的檔案**
+
 - [src/cli/commands/audit.ts](https://github.com/mikeah2011/maestro/blob/master/src/cli/commands/audit.ts)
 - [src/core/classify/Classifier.ts](https://github.com/mikeah2011/maestro/blob/master/src/core/classify/Classifier.ts)
 - [src/core/types/Finding.ts](https://github.com/mikeah2011/maestro/blob/master/src/core/types/Finding.ts)
@@ -9,7 +9,6 @@
 - [README.md](https://github.com/mikeah2011/maestro/blob/master/README.md)
 - [docs/DESIGN.md](https://github.com/mikeah2011/maestro/blob/master/docs/DESIGN.md)
 - [package.json](https://github.com/mikeah2011/maestro/blob/master/package.json)
-</cite>
 
 ## 目錄
 1. [簡介](#簡介)

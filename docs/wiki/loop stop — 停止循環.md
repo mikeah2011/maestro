@@ -1,14 +1,13 @@
 # loop stop — 停止循環
 
-<cite>
 **本文引用的檔案**
+
 - [loop.ts](https://github.com/mikeah2011/maestro/blob/master/src/cli/commands/loop.ts)
 - [LoopOrchestrator.ts](https://github.com/mikeah2011/maestro/blob/master/src/core/loop/LoopOrchestrator.ts)
 - [StateMachine.ts](https://github.com/mikeah2011/maestro/blob/master/src/core/state/StateMachine.ts)
 - [DESIGN.md](https://github.com/mikeah2011/maestro/blob/master/docs/DESIGN.md)
 - [README.md](https://github.com/mikeah2011/maestro/blob/master/README.md)
 - [LoopOrchestrator.test.ts](https://github.com/mikeah2011/maestro/blob/master/tests/core/loop/LoopOrchestrator.test.ts)
-</cite>
 
 ## 目錄
 1. [簡介](#簡介)

@@ -1,11 +1,10 @@
 # ClaudeCodeProvider（claude CLI）
 
-<cite>
-**本文引用的檔案**   
+**本文引用的檔案**
+
 - [src/ai/providers/ClaudeCodeProvider.ts](https://github.com/mikeah2011/maestro/blob/master/src/ai/providers/ClaudeCodeProvider.ts)
 - [tests/ai/providers/ClaudeCodeProvider.test.ts](https://github.com/mikeah2011/maestro/blob/master/tests/ai/providers/ClaudeCodeProvider.test.ts)
 - [src/ai/interfaces/AIProvider.ts](https://github.com/mikeah2011/maestro/blob/master/src/ai/interfaces/AIProvider.ts)
-</cite>
 
 ## 目錄
 1. [簡介](#簡介)

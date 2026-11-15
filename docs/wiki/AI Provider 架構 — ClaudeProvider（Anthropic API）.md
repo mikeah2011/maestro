@@ -1,11 +1,10 @@
 # ClaudeProvider（Anthropic API）
 
-<cite>
-**本文引用的文件**   
+**本文引用的文件**
+
 - [ClaudeProvider.ts](https://github.com/mikeah2011/maestro/blob/master/src/ai/providers/ClaudeProvider.ts)
 - [AIProvider.ts](https://github.com/mikeah2011/maestro/blob/master/src/ai/interfaces/AIProvider.ts)
 - [ClaudeProvider.test.ts](https://github.com/mikeah2011/maestro/blob/master/tests/ai/providers/ClaudeProvider.test.ts)
-</cite>
 
 ## 目錄
 1. [簡介](#簡介)

@@ -1,7 +1,7 @@
 # Provider Routing Table 配置
 
-<cite>
 **本文引用的檔案**
+
 - [schema.ts](https://github.com/mikeah2011/maestro/blob/master/src/config/schema.ts)
 - [load.ts](https://github.com/mikeah2011/maestro/blob/master/src/config/load.ts)
 - [index.ts](https://github.com/mikeah2011/maestro/blob/master/src/config/index.ts)
@@ -11,7 +11,6 @@
 - [ClaudeCodeProvider.ts](https://github.com/mikeah2011/maestro/blob/master/src/ai/providers/ClaudeCodeProvider.ts)
 - [Dedup.ts](https://github.com/mikeah2011/maestro/blob/master/src/core/dedup/Dedup.ts)
 - [loop.ts](https://github.com/mikeah2011/maestro/blob/master/src/cli/commands/loop.ts)
-</cite>
 
 ## 目錄
 1. [簡介](#簡介)

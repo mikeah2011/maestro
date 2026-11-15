@@ -1,7 +1,7 @@
 # Local Ollama Provider
 
-<cite>
-**本文引用的檔案**   
+**本文引用的檔案**
+
 - [.maestro.example.yaml](https://github.com/mikeah2011/maestro/blob/master/.maestro.example.yaml)
 - [AIProvider.ts](https://github.com/mikeah2011/maestro/blob/master/src/ai/interfaces/AIProvider.ts)
 - [schema.ts](https://github.com/mikeah2011/maestro/blob/master/src/config/schema.ts)
@@ -10,7 +10,6 @@
 - [doctor.ts](https://github.com/mikeah2011/maestro/blob/master/src/cli/commands/doctor.ts)
 - [init.ts](https://github.com/mikeah2011/maestro/blob/master/src/cli/commands/init.ts)
 - [README.md](https://github.com/mikeah2011/maestro/blob/master/README.md)
-</cite>
 
 ## 目錄
 1. [簡介](#簡介)

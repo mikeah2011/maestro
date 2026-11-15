@@ -1,14 +1,13 @@
 # maestro doctor — 環境診斷
 
-<cite>
-**本文引用的檔案**   
+**本文引用的檔案**
+
 - [doctor.ts](https://github.com/mikeah2011/maestro/blob/master/src/cli/commands/doctor.ts)
 - [load.ts](https://github.com/mikeah2011/maestro/blob/master/src/config/load.ts)
 - [schema.ts](https://github.com/mikeah2011/maestro/blob/master/src/config/schema.ts)
 - [doctor.test.ts](https://github.com/mikeah2011/maestro/blob/master/tests/cli/doctor.test.ts)
 - [.maestro.example.yaml](https://github.com/mikeah2011/maestro/blob/master/.maestro.example.yaml)
 - [package.json](https://github.com/mikeah2011/maestro/blob/master/package.json)
-</cite>
 
 ## 目錄
 1. [簡介](#簡介)

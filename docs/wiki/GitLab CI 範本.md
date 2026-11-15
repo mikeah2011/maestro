@@ -1,7 +1,7 @@
 # GitLab CI 範本
 
-<cite>
 **本文引用的檔案**
+
 - [README.md](https://github.com/mikeah2011/maestro/blob/master/README.md)
 - [.maestro.example.yaml](https://github.com/mikeah2011/maestro/blob/master/.maestro.example.yaml)
 - [CLAUDE.md](https://github.com/mikeah2011/maestro/blob/master/CLAUDE.md)
@@ -14,7 +14,6 @@
 - [src/cli/commands/doctor.ts](https://github.com/mikeah2011/maestro/blob/master/src/cli/commands/doctor.ts)
 - [src/core/types/PullRequest.ts](https://github.com/mikeah2011/maestro/blob/master/src/core/types/PullRequest.ts)
 - [.github/workflows/maestro-auto-approve.yml](https://github.com/mikeah2011/maestro/blob/master/.github/workflows/maestro-auto-approve.yml)
-</cite>
 
 ## 目錄
 1. [簡介](#簡介)

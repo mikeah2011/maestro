@@ -1,12 +1,11 @@
 # 提交節流（CommitThrottle）
 
-<cite>
-**本文引用的文件**   
+**本文引用的文件**
+
 - [src/core/round/CommitThrottle.ts](https://github.com/mikeah2011/maestro/blob/master/src/core/round/CommitThrottle.ts)
 - [tests/core/round/CommitThrottle.test.ts](https://github.com/mikeah2011/maestro/blob/master/tests/core/round/CommitThrottle.test.ts)
 - [src/core/round/RoundBudget.ts](https://github.com/mikeah2011/maestro/blob/master/src/core/round/RoundBudget.ts)
 - [src/core/types/Finding.ts](https://github.com/mikeah2011/maestro/blob/master/src/core/types/Finding.ts)
-</cite>
 
 ## 目錄
 1. [簡介](#簡介)

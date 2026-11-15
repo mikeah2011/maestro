@@ -1,7 +1,7 @@
 # RoundBudget 輪次預算
 
-<cite>
-**本文引用的檔案**   
+**本文引用的檔案**
+
 - [RoundBudget.ts](https://github.com/mikeah2011/maestro/blob/master/src/core/round/RoundBudget.ts)
 - [RoundBudget.test.ts](https://github.com/mikeah2011/maestro/blob/master/tests/core/round/RoundBudget.test.ts)
 - [LoopOrchestrator.ts](https://github.com/mikeah2011/maestro/blob/master/src/core/loop/LoopOrchestrator.ts)
@@ -9,7 +9,6 @@
 - [.maestro.example.yaml](https://github.com/mikeah2011/maestro/blob/master/.maestro.example.yaml)
 - [DESIGN.md](https://github.com/mikeah2011/maestro/blob/master/docs/DESIGN.md)
 - [schema.ts](https://github.com/mikeah2011/maestro/blob/master/src/config/schema.ts)
-</cite>
 
 ## 目錄
 1. [引言](#引言)

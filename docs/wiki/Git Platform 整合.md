@@ -1,7 +1,7 @@
 # Git Platform 整合
 
-<cite>
-**本文引用的檔案**   
+**本文引用的檔案**
+
 - [GitPlatform.ts](https://github.com/mikeah2011/maestro/blob/master/src/platforms/interfaces/GitPlatform.ts)
 - [GitHubPlatform.ts](https://github.com/mikeah2011/maestro/blob/master/src/platforms/github/GitHubPlatform.ts)
 - [mappers.ts](https://github.com/mikeah2011/maestro/blob/master/src/platforms/github/mappers.ts)
@@ -9,7 +9,6 @@
 - [PullRequest.ts](https://github.com/mikeah2011/maestro/blob/master/src/core/types/PullRequest.ts)
 - [CI.ts](https://github.com/mikeah2011/maestro/blob/master/src/core/types/CI.ts)
 - [README.md](https://github.com/mikeah2011/maestro/blob/master/README.md)
-</cite>
 
 ## 目錄
 

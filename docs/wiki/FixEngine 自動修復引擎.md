@@ -1,12 +1,11 @@
 # FixEngine 自動修復引擎
 
-<cite>
-**本文引用的檔案**   
+**本文引用的檔案**
+
 - [src/core/fix/FixEngine.ts](https://github.com/mikeah2011/maestro/blob/master/src/core/fix/FixEngine.ts)
 - [tests/core/fix/FixEngine.test.ts](https://github.com/mikeah2011/maestro/blob/master/tests/core/fix/FixEngine.test.ts)
 - [src/ai/interfaces/AIProvider.ts](https://github.com/mikeah2011/maestro/blob/master/src/ai/interfaces/AIProvider.ts)
 - [src/core/types/Finding.ts](https://github.com/mikeah2011/maestro/blob/master/src/core/types/Finding.ts)
-</cite>
 
 ## 目錄
 1. [簡介](#簡介)
