@@ -27,11 +27,12 @@
 
 ## 文檔
 
-完整文件見 **[Repo Wiki 索引](./docs/wiki/Home.md)**（78 頁，含架構、模組、CLI 命令、設定、測試、部署）。
+完整文件見 **[Repo Wiki](https://github.com/mikeah2011/maestro/wiki)**（78 頁，含架構、模組、CLI 命令、設定、測試、部署），線上版由 GitHub Wiki 提供；倉庫內亦保留一份可離線瀏覽的副本 [`docs/wiki/Home.md`](./docs/wiki/Home.md)。
 
 | 文件 | 內容 |
 |---|---|
-| [Repo Wiki 索引](./docs/wiki/Home.md) | 全部文件導覽 |
+| [Repo Wiki（線上）](https://github.com/mikeah2011/maestro/wiki) | 全部文件導覽，可直接在 GitHub 瀏覽 |
+| [Repo Wiki 索引](./docs/wiki/Home.md) | 同一份文件的倉庫內副本 |
 | [系統架構](./docs/wiki/系統架構.md) | 分層架構與系統上下文 |
 | [快速開始](./docs/wiki/快速開始.md) | 安裝與首次運行 |
 | [CLI 命令參考](./docs/wiki/CLI%20命令參考.md) | init / doctor / loop / audit / bots |
