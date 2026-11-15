@@ -25,6 +25,21 @@
 
 ---
 
+## 文檔
+
+完整文件見 **[Repo Wiki 索引](./docs/wiki/Home.md)**（78 頁，含架構、模組、CLI 命令、設定、測試、部署）。
+
+| 文件 | 內容 |
+|---|---|
+| [Repo Wiki 索引](./docs/wiki/Home.md) | 全部文件導覽 |
+| [系統架構](./docs/wiki/系統架構.md) | 分層架構與系統上下文 |
+| [快速開始](./docs/wiki/快速開始.md) | 安裝與首次運行 |
+| [CLI 命令參考](./docs/wiki/CLI%20命令參考.md) | init / doctor / loop / audit / bots |
+| [設定指南](./docs/wiki/設定指南.md) | `.maestro.yaml` 各區塊 |
+| [docs/DESIGN.md](./docs/DESIGN.md) | 原始設計文件 |
+
+---
+
 ## 為什麼需要這個工具
 
 CodeRabbit 和 Ellipsis 很擅長找問題，但不擅長*結束對話*。你修了八個問題中的五個，推回了兩個，漏掉了一個真正的 bug。十分鐘後機器人重新審查，又找到三個新問題。循環永遠不收斂；你在疲憊時合併，而不是在完成時合併。
