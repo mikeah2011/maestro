@@ -26,7 +26,12 @@ bunx vitest run tests/core/loop/LoopOrchestrator.test.ts
 
 # 僅型別檢查
 bun run typecheck
+
+# 文件
+bun run docs:wiki         # 從 .qoder/repowiki 產出重建 docs/wiki
 ```
+
+`docs/wiki/` 是產物，不要手改頁面內容；需要新內容就重新產生 Qoder Repo Wiki，再跑 `bun run docs:wiki`。腳本在寫入前會驗證渲染與連結，發現問題會拒絕寫入。
 
 覆蓋率門檻要求：lines / functions / statements 80%，branches 75%。
 

@@ -33,6 +33,7 @@
 |---|---|
 | [Repo Wiki（線上）](https://github.com/mikeah2011/maestro/wiki) | 全部文件導覽，可直接在 GitHub 瀏覽 |
 | [Repo Wiki 索引](./docs/wiki/Home.md) | 同一份文件的倉庫內副本 |
+| `bun run docs:wiki` | 從 Qoder Repo Wiki 產出重建上述副本 |
 | [系統架構](./docs/wiki/系統架構.md) | 分層架構與系統上下文 |
 | [快速開始](./docs/wiki/快速開始.md) | 安裝與首次運行 |
 | [CLI 命令參考](./docs/wiki/CLI%20命令參考.md) | init / doctor / loop / audit / bots |

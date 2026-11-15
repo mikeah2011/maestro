@@ -62,6 +62,7 @@
     "test:coverage": "vitest run --coverage",
     "typecheck": "tsc --noEmit",
     "verify": "bun run typecheck && bun run test",
+    "docs:wiki": "node scripts/build-wiki.mjs",
     "prepublishOnly": "bun run build"
   },
   "dependencies": {
