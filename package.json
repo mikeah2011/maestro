@@ -43,7 +43,7 @@
   "files": [
     "dist",
     "README.md",
-    "DESIGN.md",
+    "docs/DESIGN.md",
     "LICENSE",
     ".maestro.example.yaml"
   ],

@@ -54,3 +54,6 @@ maestro-binary-*
 
 # claude code session artifacts
 .claude/sessions/
+
+# Qoder IDE local metadata (Repo Wiki cache, knowledge cards)
+.qoder/
