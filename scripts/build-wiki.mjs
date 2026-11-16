@@ -241,7 +241,18 @@ for (const { dir, files } of plan) {
   for (const [name, body] of files) validate(`${dir}/${name}`, body, problems);
 }
 
-const branded = converted.filter((d) => /kkday/i.test(d.body)).map((d) => d.name);
+// The forbidden brand patterns are personal to the publisher, so they live in the gitignored .env
+// rather than in the shipped script. Nothing else in this repo parses .env, hence the manual read.
+const brandPatterns = (() => {
+  if (!existsSync(join(ROOT, '.env'))) return [];
+  const line = readFileSync(join(ROOT, '.env'), 'utf8')
+    .split('\n')
+    .find((l) => l.startsWith('WIKI_BRAND_GUARD='));
+  if (!line) return [];
+  return line.slice(line.indexOf('=') + 1).split(',').map((s) => s.trim()).filter(Boolean);
+})();
+if (!brandPatterns.length) notes.push('brand guard inactive: no WIKI_BRAND_GUARD in .env');
+const branded = converted.filter((d) => brandPatterns.some((p) => new RegExp(p, 'i').test(d.body))).map((d) => d.name);
 if (branded.length) problems.push(`brand string found in ${branded.length} page(s): ${branded.slice(0, 5).join(', ')}`);
 
 for (const n of notes) console.log(`note: ${n}`);
